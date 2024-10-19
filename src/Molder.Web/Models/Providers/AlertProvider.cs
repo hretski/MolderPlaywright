@@ -62,7 +62,7 @@ namespace Molder.Web.Models.Providers
         {
             try
             {
-                Alert.SetAuthenticationCredentials(login, password);
+                //Alert.SetAuthenticationCredentials(login, password);
             }
             catch (Exception ex)
             {

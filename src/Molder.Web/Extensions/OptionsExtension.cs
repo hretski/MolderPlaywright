@@ -21,7 +21,7 @@ namespace Molder.Web.Extensions
             
             foreach(var (key, value) in capabilities)
             {
-                _options.AddAdditionalCapability(key, value);
+                //_options.AddAdditionalCapability(key, value);
             }
             
             return _options;

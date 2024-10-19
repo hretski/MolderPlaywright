@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <Authors>Egor Shokhin</Authors>
         <Company>AlfaBank</Company>
         <Copyright>2021 AlfaBank</Copyright>
@@ -25,10 +25,10 @@
     </PropertyGroup>
     
     <ItemGroup>
-      <PackageReference Include="Confluent.Kafka" Version="1.8.2" />
-      <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0" />
-      <PackageReference Include="Molder" Version="2.1.1" />
-      <PackageReference Include="SpecFlow" Version="3.9.40" />
+      <PackageReference Include="Confluent.Kafka" Version="2.5.3" />
+      <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+      <PackageReference Include="Molder" Version="2.3.0" />
+      <PackageReference Include="SpecFlow" Version="3.9.74" />
     </ItemGroup>
 
     <ItemGroup>

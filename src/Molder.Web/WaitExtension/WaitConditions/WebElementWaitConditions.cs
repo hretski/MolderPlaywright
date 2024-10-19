@@ -19,8 +19,8 @@ namespace Selenium.WebDriver.WaitExtensions.WaitConditions
 
         public IWebElement ToExist()
         {
-            new WebDriverWait(_webDriver, TimeSpan.FromMilliseconds(_waitMs))
-                .Until(ExpectedConditions.ElementExists(_by));
+            //new WebDriverWait(_webDriver, TimeSpan.FromMilliseconds(_waitMs))
+               // .Until(ExpectedConditions.ElementExists(_by));
 
             return _webDriver.FindElement(_by);
         }

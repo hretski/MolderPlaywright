@@ -12,6 +12,7 @@ using Molder.Models.Configuration;
 using System.Linq;
 using Molder.Helpers;
 using Microsoft.Extensions.Logging;
+using TagHelper = Molder.Configuration.Helpers.TagHelper;
 
 namespace Molder.Configuration.Hooks
 {

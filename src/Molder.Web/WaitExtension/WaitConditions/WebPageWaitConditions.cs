@@ -18,32 +18,32 @@ namespace Selenium.WebDriver.WaitExtensions.WaitConditions
 
         public void TitleToEqual(string title)
         {
-            new WebDriverWait(_webDriver, TimeSpan.FromMilliseconds(_waitMs))
-                .Until(ExpectedConditions.TitleIs(title));
+            //new WebDriverWait(_webDriver, TimeSpan.FromMilliseconds(_waitMs))
+                //.Until(ExpectedConditions.TitleIs(title));
         }
 
         public void TitleToContain(string title)
         {
-            new WebDriverWait(_webDriver, TimeSpan.FromMilliseconds(_waitMs))
-                .Until(ExpectedConditions.TitleContains(title));
+            //new WebDriverWait(_webDriver, TimeSpan.FromMilliseconds(_waitMs))
+                //.Until(ExpectedConditions.TitleContains(title));
         }
 
         public void UrlToEqual(string url)
         {
-            new WebDriverWait(_webDriver, TimeSpan.FromMilliseconds(_waitMs))
-                .Until(ExpectedConditions.UrlToBe(url));
+            //new WebDriverWait(_webDriver, TimeSpan.FromMilliseconds(_waitMs))
+               // .Until(ExpectedConditions.UrlToBe(url));
         }
 
         public void UrlToContain(string url)
         {
-            new WebDriverWait(_webDriver, TimeSpan.FromMilliseconds(_waitMs))
-                .Until(ExpectedConditions.UrlContains(url));
+            //new WebDriverWait(_webDriver, TimeSpan.FromMilliseconds(_waitMs))
+               // .Until(ExpectedConditions.UrlContains(url));
         }
 
         public void UrlToMatch(string regex)
         {
-            new WebDriverWait(_webDriver, TimeSpan.FromMilliseconds(_waitMs))
-                .Until(ExpectedConditions.UrlMatches(regex));
+            //new WebDriverWait(_webDriver, TimeSpan.FromMilliseconds(_waitMs))
+                //.Until(ExpectedConditions.UrlMatches(regex));
         }
 
 

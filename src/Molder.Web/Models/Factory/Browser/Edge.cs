@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Molder.Helpers;
 using Molder.Web.Extensions;
+using Molder.Web.Infrastructures;
 using Molder.Web.Models.Settings;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Edge;
@@ -11,7 +12,7 @@ namespace Molder.Web.Models.Browser
 {
     public class Edge : Browser
     {
-        public sealed override SessionId SessionId { get; protected set; }
+        //public sealed override SessionId SessionId { get; protected set; }
         
         public Edge()
         {
@@ -19,17 +20,17 @@ namespace Molder.Web.Models.Browser
             if(BrowserSettings.Settings.IsRemoteRun())
             {
                 Log.Logger().LogInformation($@"Start remote edge browser...");
-                DriverProvider.CreateDriver(() => new RemoteWebDriver(new Uri(BrowserSettings.Settings.Remote.Url), options.ToCapabilities()));
-                SessionId = (DriverProvider.GetDriver() as RemoteWebDriver)?.SessionId;
-                Log.Logger().LogInformation($@"Remote edge browser (SessionId is {SessionId}) is starting with options: {Helpers.Message.CreateMessage(options)}");
+                DriverProvider.CreateDriverAsync(BrowserType.EDGE);
+                //SessionId = (DriverProvider.GetDriver() as RemoteWebDriver)?.SessionId;
+                //Log.Logger().LogInformation($@"Remote edge browser (SessionId is {SessionId}) is starting with options: {Helpers.Message.CreateMessage(options)}");
                 return;
             }
             Log.Logger().LogInformation($@"Start edge browser...");
             var service = EdgeDriverService.CreateDefaultService();
             service.HideCommandPromptWindow = true;
-            DriverProvider.CreateDriver(() => new EdgeDriver(service, options));
-            SessionId = (DriverProvider.GetDriver() as EdgeDriver)?.SessionId;
-            Log.Logger().LogInformation($@"Local edge browser (SessionId is {SessionId}) is starting with options: {Helpers.Message.CreateMessage(options)}");
+            DriverProvider.CreateDriverAsync(BrowserType.EDGE);
+            //SessionId = (DriverProvider.GetDriver() as EdgeDriver)?.SessionId;
+            //Log.Logger().LogInformation($@"Local edge browser (SessionId is {SessionId}) is starting with options: {Helpers.Message.CreateMessage(options)}");
         }
 
         private EdgeOptions CreateOptions()

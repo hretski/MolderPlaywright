@@ -1,30 +1,30 @@
 ﻿using Molder.Web.Models.PageObjects.Pages;
 using OpenQA.Selenium.Remote;
+using System.Threading.Tasks;
 using IAlert = Molder.Web.Models.PageObjects.Alerts.IAlert;
 
 namespace Molder.Web.Models.Browser
 {
     public interface IBrowser
     {
-        string Url { get; }
-        string Title { get; }
-        SessionId SessionId { get; }
-        int Tabs { get; }
+        Task<string> Url { get; }
+        Task<string> Title { get; }
+        Task<int> Tabs { get; }
 
-        void Close();
-        void Quit();
-        void WindowSize(int width, int height);
-        void Maximize();
-        void Back();
-        void Forward();
-        void GoToPage(string url);
-        void Refresh();
+        Task Close();
+        Task Quit();
+        Task WindowSize(int width, int height);
+        Task Maximize();
+        Task Back();
+        Task Forward();
+        Task GoToPage(string url);
+        Task Refresh();
 
         void SetCurrentPage(string name, bool loading = true);
         void UpdateCurrentPage(string name);
         IPage GetCurrentPage();
 
-        void SwitchTo(int number);
+        Task SwitchTo(int number);
         IAlert Alert();
 
         void Dispose();

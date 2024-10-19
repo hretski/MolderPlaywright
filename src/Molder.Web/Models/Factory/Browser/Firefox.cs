@@ -12,7 +12,7 @@ namespace Molder.Web.Models.Browser
 {
     public class Firefox : Browser
     {
-        public sealed override SessionId SessionId { get; protected set; }
+        //public sealed override SessionId SessionId { get; protected set; }
         
         public Firefox()
         {
@@ -20,17 +20,17 @@ namespace Molder.Web.Models.Browser
             if(BrowserSettings.Settings.IsRemoteRun())
             {
                 Log.Logger().LogInformation($@"Start remote firefox browser...");
-                DriverProvider.CreateDriver(() => new RemoteWebDriver(new Uri(BrowserSettings.Settings.Remote.Url), options.ToCapabilities()));
-                SessionId = (DriverProvider.GetDriver() as RemoteWebDriver)?.SessionId;
-                Log.Logger().LogInformation($@"Remote firefox browser (SessionId is {SessionId}) is starting with options: {Helpers.Message.CreateMessage(options)}");
+                DriverProvider.CreateDriverAsync(BrowserType.FIREFOX);
+                //SessionId = (DriverProvider.GetDriver() as RemoteWebDriver)?.SessionId;
+                //Log.Logger().LogInformation($@"Remote firefox browser (SessionId is {SessionId}) is starting with options: {Helpers.Message.CreateMessage(options)}");
                 return;
             }
             Log.Logger().LogInformation($@"Start firefox browser...");
             var service = FirefoxDriverService.CreateDefaultService();
             service.HideCommandPromptWindow = true;
-            DriverProvider.CreateDriver(() => new FirefoxDriver(service, options));
-            SessionId = (DriverProvider.GetDriver() as FirefoxDriver)?.SessionId;
-            Log.Logger().LogInformation($@"Local firefox browser (SessionId is {SessionId}) is starting with options: {Helpers.Message.CreateMessage(options)}");
+            DriverProvider.CreateDriverAsync(BrowserType.FIREFOX);
+            //SessionId = (DriverProvider.GetDriver() as FirefoxDriver)?.SessionId;
+            //Log.Logger().LogInformation($@"Local firefox browser (SessionId is {SessionId}) is starting with options: {Helpers.Message.CreateMessage(options)}");
         }
 
         private FirefoxOptions CreateOptions()
@@ -39,10 +39,10 @@ namespace Molder.Web.Models.Browser
             
             if (BrowserSettings.Settings.IsRemoteRun())
             {
-                options.AddAdditionalCapability("version", BrowserSettings.Settings.Remote.Version ?? Constants.DEFAULT_VERSION, true);
-                options.AddAdditionalCapability("enableVNC", true, true);
-                options.AddAdditionalCapability("platform", BrowserSettings.Settings.Remote.Platform ?? Constants.DEFAULT_PLATFORM, true);
-                options.AddAdditionalCapability("name", BrowserSettings.Settings.Remote.Project ?? Constants.DEFAULT_PROJECT, true);
+                //options.AddAdditionalCapability("version", BrowserSettings.Settings.Remote.Version ?? Constants.DEFAULT_VERSION, true);
+                //options.AddAdditionalCapability("enableVNC", true, true);
+                //options.AddAdditionalCapability("platform", BrowserSettings.Settings.Remote.Platform ?? Constants.DEFAULT_PLATFORM, true);
+                //options.AddAdditionalCapability("name", BrowserSettings.Settings.Remote.Project ?? Constants.DEFAULT_PROJECT, true);
             }
 
             if (BrowserSettings.Settings.IsOptions())

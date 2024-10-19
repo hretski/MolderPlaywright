@@ -12,7 +12,7 @@ namespace Molder.Web.Models.Browser
 {
     public class Chrome : Browser
     {
-        public sealed override SessionId SessionId { get; protected set; }
+        //public sealed override SessionId SessionId { get; protected set; }
 
         public Chrome()
         {
@@ -21,17 +21,17 @@ namespace Molder.Web.Models.Browser
             if(BrowserSettings.Settings.IsRemoteRun())
             {
                 Log.Logger().LogInformation($@"Start remote chrome browser...");
-                DriverProvider.CreateDriver(() => new RemoteWebDriver(new Uri(BrowserSettings.Settings.Remote.Url), options.ToCapabilities(), TimeSpan.FromSeconds(timeout)));
-                SessionId = (DriverProvider.GetDriver() as RemoteWebDriver)?.SessionId;
-                Log.Logger().LogInformation($@"Remote chrome browser (SessionId is {SessionId}) is starting with options: {Helpers.Message.CreateMessage(options)}");
+                DriverProvider.CreateDriverAsync(BrowserType.CHROME);
+                // = (DriverProvider.GetDriver() as RemoteWebDriver)?.SessionId;
+                //.Logger().LogInformation($@"Remote chrome browser (SessionId is {SessionId}) is starting with options: {Helpers.Message.CreateMessage(options)}");
                 return;
             }
             Log.Logger().LogInformation($@"Start chrome browser...");
             var service = ChromeDriverService.CreateDefaultService();
             service.HideCommandPromptWindow = true;
-            DriverProvider.CreateDriver(() => new ChromeDriver(service, options, TimeSpan.FromSeconds(timeout)));
-            SessionId = (DriverProvider.GetDriver() as ChromeDriver)?.SessionId;
-            Log.Logger().LogInformation($@"Local chrome browser (SessionId is {SessionId}) is starting with options: {Helpers.Message.CreateMessage(options)}");
+            DriverProvider.CreateDriverAsync(BrowserType.CHROME);
+            //SessionId = (DriverProvider.GetDriver() as ChromeDriver)?.SessionId;
+            //Log.Logger().LogInformation($@"Local chrome browser (SessionId is {SessionId}) is starting with options: {Helpers.Message.CreateMessage(options)}");
         }
 
         private ChromeOptions CreateOptions()
@@ -40,10 +40,10 @@ namespace Molder.Web.Models.Browser
             
             if (BrowserSettings.Settings.IsRemoteRun())
             {
-                options.AddAdditionalCapability("version", BrowserSettings.Settings.Remote.Version ?? Constants.DEFAULT_VERSION, true);
-                options.AddAdditionalCapability("enableVNC", true, true);
-                options.AddAdditionalCapability("platform", BrowserSettings.Settings.Remote.Platform ?? Constants.DEFAULT_PLATFORM, true);
-                options.AddAdditionalCapability("name", BrowserSettings.Settings.Remote.Project ?? Constants.DEFAULT_PROJECT, true);
+                //options.AddAdditionalCapability("version", BrowserSettings.Settings.Remote.Version ?? Constants.DEFAULT_VERSION, true);
+                //options.AddAdditionalCapability("enableVNC", true, true);
+                //options.AddAdditionalCapability("platform", BrowserSettings.Settings.Remote.Platform ?? Constants.DEFAULT_PLATFORM, true);
+                //options.AddAdditionalCapability("name", BrowserSettings.Settings.Remote.Project ?? Constants.DEFAULT_PROJECT, true);
             }
 
             if (BrowserSettings.Settings.IsOptions())

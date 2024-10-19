@@ -1,44 +1,47 @@
-﻿using OpenQA.Selenium;
-using System;
+﻿using Molder.Web.Infrastructures;
+using Molder.Web.Models.Settings;
+using OpenQA.Selenium;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using Molder.Web.Infrastructures;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.Providers
 {
     public interface IDriverProvider
     {
-        string PageSource { get; }
-        string Title { get; }
-        string Url { get;  }
-        int Tabs { get; }
-        string CurrentWindowHandle { get; }
-        ReadOnlyCollection<string> WindowHandles { get; }
+        // Свойства состояния браузера
+        Task<string> PageSourceAsync { get; }
+        Task<string> TitleAsync { get; }
+        Task<string> UrlAsync { get; }
+        Task<int> TabsAsync { get; }
+        Task<string> CurrentWindowHandleAsync { get; }
+        Task<ReadOnlyCollection<string>> WindowHandlesAsync { get; }
 
-        void CreateDriver(Func<IWebDriver> action);
-        IWebDriver GetDriver();
+        // Методы управления драйвером
+        Task CreateDriverAsync(BrowserType browserType);
+        Task CloseAsync();
+        Task QuitAsync();
+        Task WindowSizeAsync(int width, int height);
+        Task MaximizeAsync();
+        Task BackAsync();
+        Task ForwardAsync();
+        Task GoToUrlAsync(string url);
+        Task RefreshAsync();
+        Task SwitchToAsync(int number);
 
-        void Close();
-        void Quit();
-        IElementProvider GetElement(string locator, How how);
-        IEnumerable<IElementProvider> GetElements(string locator, How how);
-        void WindowSize(int width, int height);
-        void Maximize();
-        void Back();
-        void Forward();
-        void GoToUrl(string url);
-        void Refresh();
+        // Методы взаимодействия с элементами
+        Task<IElementProvider> GetElementAsync(string locator, How how);
+        Task<IEnumerable<IElementProvider>> GetElementsAsync(string locator, How how);
+        Task<IAlertProvider> GetAlertAsync();
 
-        void SwitchTo(int number);
+        // Методы взаимодействия с фреймами
+        Task<IDriverProvider> GetDefaultFrameAsync();
+        Task<IDriverProvider> GetParentFrameAsync();
+        Task<IDriverProvider> GetFrameAsync(int id);
+        Task<IDriverProvider> GetFrameAsync(string name);
+        Task<IDriverProvider> GetFrameAsync(By by);
 
-        IAlertProvider GetAlert();
-
-        IDriverProvider GetDefaultFrame();
-        IDriverProvider GetParentFrame();
-        IDriverProvider GetFrame(int id);
-        IDriverProvider GetFrame(string name);
-        IDriverProvider GetFrame(By by);
-
-        byte[] Screenshot();
+        // Метод для создания скриншота
+        Task<byte[]> ScreenshotAsync();
     }
 }

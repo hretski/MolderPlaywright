@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Molder.Helpers;
 using OpenQA.Selenium.Remote;
 using IAlert = Molder.Web.Models.PageObjects.Alerts.IAlert;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.Browser
 {
@@ -28,11 +29,11 @@ namespace Molder.Web.Models.Browser
             set => _provider.Value = value;
         }
 
-        public string Url => DriverProvider.Url;
-        public string Title => DriverProvider.Title;
-        public int Tabs => DriverProvider.Tabs;
+        public Task<string> Url => DriverProvider.UrlAsync;
+        public Task<string> Title => DriverProvider.TitleAsync;
+        public Task<int> Tabs => DriverProvider.TabsAsync;
 
-        public abstract SessionId SessionId { get; protected set; }
+        //public abstract SessionId SessionId { get; protected set; }
 
         public void SetCurrentPage(string name, bool loading = true)
         {
@@ -69,50 +70,50 @@ namespace Molder.Web.Models.Browser
             return _currentPage.Value.Object as IPage;
         }
 
-        public void Close()
+        public async Task Close()
         {
-            DriverProvider.Close();
+            await DriverProvider.CloseAsync();
         }
 
-        public void Quit()
+        public async Task Quit()
         {
-            DriverProvider.Quit();
+            await DriverProvider.QuitAsync();
         }
 
-        public void WindowSize(int width, int height)
+        public async Task WindowSize(int width, int height)
         {
             Log.Logger().LogInformation($"Browser size is ({width},{height})");
-            DriverProvider.WindowSize(width, height);
+            await DriverProvider.WindowSizeAsync(width, height);
         }
 
-        public void Maximize()
+        public async Task Maximize()
         {
             Log.Logger().LogInformation($"Browser size is maximize");
-            DriverProvider.Maximize();
+            await DriverProvider.MaximizeAsync();
         }
 
-        public void Back()
+        public async Task Back()
         {
             Log.Logger().LogInformation($"Go a back page");
-            DriverProvider.Back();
+            await DriverProvider.BackAsync();
         }
 
-        public void Forward()
+        public async Task Forward()
         {
             Log.Logger().LogInformation($"Go a forvard page");
-            DriverProvider.Forward();
+            await DriverProvider.ForwardAsync();
         }
 
-        public void GoToPage(string url)
+        public async Task GoToPage(string url)
         {
             Log.Logger().LogInformation($"GoToUrl {url}");
-            DriverProvider.GoToUrl(url);
+            await DriverProvider.GoToUrlAsync(url);
         }
 
-        public void Refresh()
+        public async Task Refresh()
         {
             Log.Logger().LogInformation($"Refresh page");
-            DriverProvider.Refresh();
+            await DriverProvider.RefreshAsync();
         }
 
         public IAlert Alert()
@@ -120,15 +121,15 @@ namespace Molder.Web.Models.Browser
             return new Alert(DriverProvider);
         }
 
-        public void SwitchTo(int number)
+        public async Task SwitchTo(int number)
         {
             Log.Logger().LogInformation($"Switch to {number} page");
-            DriverProvider.SwitchTo(number);
+            await DriverProvider.SwitchToAsync(number);
         }
 
-        public byte[] Screenshot()
+        public Task<byte[]> Screenshot()
         {
-            return DriverProvider.Screenshot();
+             return DriverProvider.ScreenshotAsync();
         }
 
         public void Dispose() {  }

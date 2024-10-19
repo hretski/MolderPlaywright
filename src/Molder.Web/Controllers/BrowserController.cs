@@ -33,25 +33,25 @@ namespace Molder.Web.Controllers
                 case BrowserType.CHROME:
                 {
                     Browser.Value = new Chrome();
-                    Log.Logger().LogInformation($"ChromeBrowser session is - {Browser.Value.SessionId}");
+                    //Log.Logger().LogInformation($"ChromeBrowser session is - {Browser.Value.SessionId}");
                     return Browser.Value;
                 }
                 case BrowserType.FIREFOX:
                 {
                     Browser.Value = new Firefox();
-                    Log.Logger().LogInformation($"FirefoxBrowser session is - {Browser.Value.SessionId}");
+                    //Log.Logger().LogInformation($"FirefoxBrowser session is - {Browser.Value.SessionId}");
                     return Browser.Value;
                 }
                 case BrowserType.EDGE:
                 {
                     Browser.Value = new Edge();
-                    Log.Logger().LogInformation($"EdgeBrowser session is - {Browser.Value.SessionId}");
+                    //Log.Logger().LogInformation($"EdgeBrowser session is - {Browser.Value.SessionId}");
                     return Browser.Value;
                 }
                 case BrowserType.OPERA:
                 {
-                    Browser.Value = new Opera();
-                    Log.Logger().LogInformation($"OperaBrowser session is - {Browser.Value.SessionId}");
+                    //Browser.Value = new Opera();
+                    //Log.Logger().LogInformation($"OperaBrowser session is - {Browser.Value.SessionId}");
                     return Browser.Value;
                 }
                 default:
