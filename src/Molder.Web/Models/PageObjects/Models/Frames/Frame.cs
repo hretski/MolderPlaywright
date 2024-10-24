@@ -7,6 +7,7 @@ using OpenQA.Selenium;
 using Molder.Web.Extensions;
 using Molder.Web.Infrastructures;
 using Molder.Web.Models.Settings;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.PageObjects.Frames
 {
@@ -34,29 +35,29 @@ namespace Molder.Web.Models.PageObjects.Frames
             _frameName = frameName;
         }
 
-        public new void SetProvider(IDriverProvider provider)
+        public new async Task SetProviderAsync(IDriverProvider provider)
         {
             ElementProvider = null;
             mediator = new FrameMediator(BrowserSettings.Settings.Timeout);
-            Driver = GetFrame(provider);
+            Driver = await GetFrameAsync(provider);
         }
 
-        public IDriverProvider Parent()
+        public async Task<IDriverProvider> ParentAsync()
         {
-            return mediator.Execute(() => Driver.GetParentFrame()) as IDriverProvider;
+            return await mediator.ExecuteAsync(async () => await Driver.GetParentFrameAsync()) as IDriverProvider;
         }
 
-        public IDriverProvider Default()
+        public async Task<IDriverProvider> DefaultAsync()
         {
-            return _frameMediator.Value.Execute(() => Driver.GetDefaultFrame()) as IDriverProvider;
+            return await _frameMediator.Value.ExecuteAsync(async () => await Driver.GetDefaultFrameAsync()) as IDriverProvider;
         }
 
-        public Block GetBlock(string name)
+        public async Task<Block> GetBlockAsync(string name)
         {
             var block = Root.SearchElementBy(name, ObjectType.Block);
 
             (block.Object as Block)?.SetProvider(Driver);
-            (block.Object as Block)?.Get();
+            await (block.Object as Block)?.GetAsync();
             ((Block) block.Object).Root = block;
             return block.Object as Block;
         }
@@ -65,36 +66,36 @@ namespace Molder.Web.Models.PageObjects.Frames
         {
             var frame = Root.SearchElementBy(name, ObjectType.Frame);
 
-            (frame.Object as Frame)?.SetProvider(Driver);
+            (frame.Object as Frame)?.SetProviderAsync(Driver);
             ((Frame) frame.Object).Root = frame;
             return frame.Object as Frame;
         }
 
-        public IElement GetElement(string name)
+        public async Task<IElement> GetElementAsync(string name)
         {
             var element = Root.SearchElementBy(name);
             (element.Object as Element)?.SetProvider(Driver);
-            (element.Object as Element)?.Get();
+            await (element.Object as Element)?.GetAsync();
             ((Element) element.Object).Root = element;
             return (IElement) element.Object;
         }
 
-        private IDriverProvider GetFrame(IDriverProvider provider)
+        private async Task<IDriverProvider> GetFrameAsync(IDriverProvider provider)
         {
             IDriverProvider _driver = default;
             if (_frameName != null)
             {
-                _driver = _frameMediator.Value.Execute(() => provider.GetFrame(_frameName)) as IDriverProvider;
+                _driver = await _frameMediator.Value.ExecuteAsync(async () => await provider.GetFrameAsync(_frameName)) as IDriverProvider;
                 return _driver;
             }
 
             if (_number != null)
             {
-                _driver = _frameMediator.Value.Execute(() => provider.GetFrame((int)_number)) as IDriverProvider;
+                _driver = await _frameMediator.Value.ExecuteAsync(async () => await provider.GetFrameAsync((int)_number)) as IDriverProvider;
                 return _driver;
             }
 
-            _driver = _frameMediator.Value.Execute(() => provider.GetFrame(By.XPath(Locator))) as IDriverProvider;
+            _driver = await _frameMediator.Value.ExecuteAsync(async () => await provider.GetFrameAsync(By.XPath(Locator))) as IDriverProvider;
             return _driver;
         }
     }

@@ -1,38 +1,39 @@
 ﻿using OpenQA.Selenium;
 using System.Collections.ObjectModel;
 using System.Drawing;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.Providers
 {
     public interface IElementProvider
     {
-        bool Displayed { get; }
-        bool NotDisplayed { get; }
-        bool Selected { get; }
-        bool NotSelected { get; }
-        bool Enabled { get; }
-        bool Disabled { get; }
-        bool Editabled { get; }
-        bool NotEditabled { get; }
-        bool Loaded { get; }
-        bool NotLoaded { get; }
+        Task<bool> Displayed { get; }
+        Task<bool> NotDisplayed { get; }
+        Task<bool> Selected { get; }
+        Task<bool> NotSelected { get; }
+        Task<bool> Enabled { get; }
+        Task<bool> Disabled { get; }
+        Task<bool> Editabled { get; }
+        Task<bool> NotEditabled { get; }
+        Task<bool> Loaded { get; }
+        Task<bool> NotLoaded { get; }
         
-        Point Location { get; }
-        string Text { get; }
-        string Tag { get; }
+        Task<Point> Location { get; }
+        Task<string> Text { get; }
+        Task<string> Tag { get; }
 
-        void Clear();
-        void Click();
-        string GetAttribute(string name);
-        string GetCss(string name);
-        void SendKeys(string keys);
+        Task ClearAsync();
+        Task ClickAsync();
+        Task<string> GetAttributeAsync(string name);
+        Task<string> GetCssAsync(string name);
+        Task SendKeysAsync(string keys);
 
-        bool TextEqual(string text);
-        bool TextContain(string text);
-        bool TextMatch(string text);
-        void WaitUntilAttributeValueEquals(string attributeName, string attributeValue);
+        Task<bool> TextEqualAsync(string text);
+        Task<bool> TextContainAsync(string text);
+        Task<bool> TextMatchAsync(string text);
+        Task WaitUntilAttributeValueEqualsAsync(string attributeName, string attributeValue);
 
-        IElementProvider FindElement(By by);
-        ReadOnlyCollection<IElementProvider> FindElements(By by);
+        Task<IElementProvider> FindElementAsync(By by);
+        Task<ReadOnlyCollection<IElementProvider>> FindElementsAsync(By by);
     }
 }

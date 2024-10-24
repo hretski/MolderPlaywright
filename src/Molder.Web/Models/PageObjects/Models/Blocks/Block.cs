@@ -2,6 +2,7 @@
 using Molder.Web.Infrastructures;
 using Molder.Web.Models.PageObjects.Elements;
 using Molder.Web.Models.PageObjects.Frames;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.PageObjects.Blocks
 {
@@ -9,29 +10,29 @@ namespace Molder.Web.Models.PageObjects.Blocks
     {
         public Block(string name, string locator, bool optional) : base(name, locator, optional) { }
 
-        public Block GetBlock(string name)
+        public async Task<Block> GetBlockAsync(string name)
         {
             var block = Root.SearchElementBy(name, ObjectType.Block);
 
             (block.Object as Block)?.SetProvider(Driver);
-            (block.Object as Block)?.Get();
+            await (block.Object as Block)?.GetAsync();
             ((Block)block.Object).Root = block;
             return (Block)block.Object;
         }
 
-        public IElement GetElement(string name)
+        public async Task<IElement> GetElementAsync(string name)
         {
             var element = Root.SearchElementBy(name);
             (element.Object as Element)?.SetProvider(Driver);
             ((Element)element.Object).Root = element;
             if (Root.Type == ObjectType.Collection)
             {
-                var tmpElement = Find(element);
+                var tmpElement = await FindAsync(element);
                 tmpElement.Root = element.Root;
                 tmpElement.Name = element.Name;
                 return tmpElement;
             }
-            (element.Object as Element)?.Get();
+            await (element.Object as Element)?.GetAsync();
             return (IElement)element.Object;
         }
 
@@ -39,7 +40,7 @@ namespace Molder.Web.Models.PageObjects.Blocks
         {
             var frame = Root.SearchElementBy(name, ObjectType.Frame);
 
-            (frame.Object as Frame)?.SetProvider(Driver);
+            (frame.Object as Frame)?.SetProviderAsync(Driver);
             ((Frame)frame.Object).Root = frame;
             return (Frame)frame.Object;
         }

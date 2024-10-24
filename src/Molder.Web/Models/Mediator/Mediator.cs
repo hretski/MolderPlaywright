@@ -1,6 +1,7 @@
 ﻿using Polly.Retry;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.Mediator
 {
@@ -11,19 +12,20 @@ namespace Molder.Web.Models.Mediator
 
         protected RetryPolicy waitAndRetryPolicy = null;
 
-        public virtual void Execute(Action action)
+        public virtual async Task ExecuteAsync(Action action)
         {
             retryPolicy.Execute(action);
+            await Task.CompletedTask;
         }
 
-        public virtual object Execute<TResult>(Func<TResult> action)
+        public virtual async Task<object> ExecuteAsync<TResult>(Func<TResult> action)
         {
-            return retryPolicy.Execute(action);
+            return await Task.FromResult(retryPolicy.Execute(action));
         }
 
-        public virtual object Wait<TResult>(Func<TResult> action)
+        public virtual async Task<object> WaitAsync<TResult>(Func<TResult> action)
         {
-            return waitAndRetryPolicy.Execute(action);
+            return await Task.FromResult(waitAndRetryPolicy.Execute(action));
         }
     }
 }

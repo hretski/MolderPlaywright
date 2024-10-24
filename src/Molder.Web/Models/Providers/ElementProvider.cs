@@ -12,6 +12,7 @@ using Molder.Web.Exceptions;
 using Molder.Web.Extensions;
 using Molder.Web.Models.Settings;
 using OpenQA.Selenium.Support.UI;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.Providers
 {
@@ -23,65 +24,80 @@ namespace Molder.Web.Models.Providers
 
         #region WebElement
 
-        private AsyncLocal<IWebElement> _element = new() { Value = null };
+        private IWebElement _element;
 
         public IWebElement WebElement
         {
-            get
+            get 
             {
-                if (_element.Value is not null) return _element.Value;
-                
-                _element.Value = WebDriver.Wait((int)BrowserSettings.Settings.Timeout).ForElement(_locator).ToExist();
-                return _element.Value;
+                try 
+                { 
+                    _element = WebDriver.FindElement(_locator);
+                }
+
+                catch(NoSuchElementException ex)
+                {
+                    Log.Logger().LogError(ex, $"Element {_locator} not found");
+                    return null;
+                }
+
+                return _element;
+
             }
-            set => _element.Value = value;
+            set => _element = value;
         }
 
         #endregion
-        
-        #region  WebDriver
 
-        private AsyncLocal<IWebDriver> _driver = new() { Value = null };
-        public IWebDriver WebDriver
+        public IWebDriver WebDriver { get; init; }
+
+        public By Locator
         {
-            get => _driver.Value;
-            set => _driver.Value = value;
+            get => _locator;
+            set => _locator = value;
         }
 
-        #endregion
-        
+
         public ElementProvider(long? timeout, By locator)
         {
             _timeout = timeout;
             _locator = locator;
         }
         
-        public bool Displayed => WebElement.Displayed;
-        public bool NotDisplayed => !WebElement.Displayed;
+        public Task<bool> Displayed => Task.FromResult(WebElement.Displayed);
 
-        public bool Selected => WebElement.Selected;
-        public bool NotSelected => !WebElement.Selected;
+        public Task<bool> NotDisplayed => Task.FromResult(!WebElement.Displayed);
 
-        public bool Enabled => WebElement.Enabled;
-        public bool Disabled => !WebElement.Enabled;
+        public Task<bool> Selected => Task.FromResult(WebElement.Selected);
+
+        public Task<bool> NotSelected => Task.FromResult(!WebElement.Selected);
+
+        public Task<bool> Enabled => Task.FromResult(WebElement.Enabled);
+
+        public Task<bool> Disabled => Task.FromResult(!WebElement.Enabled);
         
-        public bool Loaded => WebElement is not null;
-        public bool NotLoaded => WebElement is null;
+        public Task<bool> Loaded => Task.FromResult(WebElement is not null);
 
-        public bool Editabled => IsEditabled();
-        public bool NotEditabled => !IsEditabled();
+        public Task<bool> NotLoaded => Task.FromResult(WebElement is null);
 
-        public Point Location => WebElement.Location;
+        public Task<bool> Editabled => IsEditabledAsync();
 
-        public string Text => WebElement.Text;
+        public Task<bool> NotEditabled => Editabled.ContinueWith(x =>
+        {
+            return !x.Result;
+        }, TaskContinuationOptions.ExecuteSynchronously);
 
-        public string Tag => WebElement.TagName;
+        public Task<Point> Location => Task.FromResult(WebElement.Location);
 
-        public void Clear()
+        public Task<string> Text => Task.FromResult(WebElement.Text);
+
+        public Task<string> Tag => Task.FromResult(WebElement.TagName);
+
+        public async Task ClearAsync()
         {
             try
             {
-                WebElement.Clear();
+                await Task.Run(() => WebElement.Clear());
             }
             catch (Exception ex)
             {
@@ -89,11 +105,11 @@ namespace Molder.Web.Models.Providers
             }
         }
 
-        public void Click()
+        public async Task ClickAsync()
         {
             try
             {
-                WebElement.Click();
+                await Task.Run(() => WebElement.Click());
             }
             catch (Exception ex)
             {
@@ -101,67 +117,73 @@ namespace Molder.Web.Models.Providers
             }
         }
 
-        public bool TextEqual(string text)
+        public async Task<bool> TextEqualAsync(string text)
         {
             try
             {
-                return WebElement.Wait((int)_timeout).ForText().ToEqual(text);
+                await Task.Run(() => WebElement.Wait((int)_timeout).ForText().ToEqual(text));
             }
             catch (WebDriverTimeoutException ex)
             {
                 Log.Logger().LogWarning($"\"{WebElement.Text}\" is not equal \"{text}\". Exception is {ex.Message}");
                 return false;
             }
+
+            return false;
         }
 
-        public bool TextContain(string text)
+        public async Task<bool> TextContainAsync(string text)
         {
             try
             {
-                return WebElement.Wait((int)_timeout).ForText().ToContain(text);
+                await Task.FromResult(WebElement.Wait((int)_timeout).ForText().ToContain(text));
             }
             catch (WebDriverTimeoutException ex)
             {
                 Log.Logger().LogWarning($"\"{WebElement.Text}\" is not contain \"{text}\". Exception is {ex.Message}");
                 return false;
             }
+
+            return false;
         }
 
-        public bool TextMatch(string text)
+        public async Task<bool> TextMatchAsync(string text)
         {
             try
             {
-                return WebElement.Wait((int)_timeout).ForText().ToMatch(text);
+                await Task.Run(() => WebElement.Wait((int)_timeout).ForText());
             }
             catch (WebDriverTimeoutException ex)
             {
                 Log.Logger().LogWarning($"\"{WebElement.Text}\" is not match \"{text}\". Exception is {ex.Message}");
                 return false;
             }
+
+            return false;
         }
 
-        public IElementProvider FindElement(By by)
+        public async Task<IElementProvider> FindElementAsync(By by)
         {
             var element = WebElement.FindBy(by, WebDriver, (int) BrowserSettings.Settings.Timeout);
-            return new ElementProvider(_timeout, by)
+            return await Task.FromResult((IElementProvider)new ElementProvider(_timeout, by)
             {
                 WebElement = element
-            };
+            });
         }
 
-        public ReadOnlyCollection<IElementProvider> FindElements(By by)
+        public async Task<ReadOnlyCollection<IElementProvider>> FindElementsAsync(By by)
         {
             var elements = WebElement.FindAllBy(by, WebDriver, (int) BrowserSettings.Settings.Timeout);
             var listElement = elements.Select(element => new ElementProvider(_timeout, by) {WebElement = element}).Cast<IElementProvider>().ToList();
-            return listElement.AsReadOnly();
+            return await Task.FromResult(listElement.AsReadOnly());
         }
 
-        public string GetAttribute(string name)
+        public async Task<string> GetAttributeAsync(string name)
         {
             try
             {
                 Log.Logger().LogDebug($"Get attribute by name \"{name}\"");
-                return WebElement.GetAttribute(name);
+                return await Task.FromResult(WebElement.GetAttribute(name));
             }
             catch (Exception ex)
             {
@@ -169,11 +191,11 @@ namespace Molder.Web.Models.Providers
             }
         }
 
-        public string GetCss(string name)
+        public async Task<string> GetCssAsync(string name)
         {
             try
             {
-                return WebElement.GetCssValue(name);
+                return await Task.FromResult(WebElement.GetCssValue(name));
             }
             catch (Exception ex)
             {
@@ -181,11 +203,11 @@ namespace Molder.Web.Models.Providers
             }
         }
 
-        public void SendKeys(string keys)
+        public async Task SendKeysAsync(string keys)
         {
             try
             {
-                WebElement.SendKeys(keys);
+                await Task.Run(() => WebElement.SendKeys(keys));
             }
             catch (Exception ex)
             {
@@ -193,15 +215,16 @@ namespace Molder.Web.Models.Providers
             }
         }
 
-        private bool IsEditabled()
+        private async Task<bool> IsEditabledAsync()
         {
-            return Convert.ToBoolean(GetAttribute("readonly"));
+            return Convert.ToBoolean(await GetAttributeAsync("readonly"));
         }
         
-        public void WaitUntilAttributeValueEquals(string attributeName, string attributeValue)
+        public async Task WaitUntilAttributeValueEqualsAsync(string attributeName, string attributeValue)
         {      
             var wait = new WebDriverWait(WebDriver, TimeSpan.FromSeconds((long)BrowserSettings.Settings.Timeout));
             WebElement = wait.Until(_ => WebElement.GetAttribute(attributeName) == attributeValue ? WebElement : throw new ElementException($"Waiting until attribute \"{attributeName}\" becomes value \"{attributeValue ?? "null"}\" is failed"));
+            await Task.CompletedTask;
         }
     }
 }

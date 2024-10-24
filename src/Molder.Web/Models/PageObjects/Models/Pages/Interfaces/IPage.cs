@@ -2,6 +2,7 @@
 using Molder.Web.Models.PageObjects.Elements;
 using Molder.Web.Models.PageObjects.Frames;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.PageObjects.Pages
 {
@@ -12,19 +13,19 @@ namespace Molder.Web.Models.PageObjects.Pages
         Node Root { get; set; }
         Node Local { get; set; }
 
-        Block GetBlock(string name);
+        Task<Block> GetBlockAsync(string name);
         void BackToPage();
-        IElement GetElement(string name);
-        IEnumerable<IElement> GetCollection(string name);
+        Task<IElement> GetElementAsync(string name);
+        Task<IEnumerable<IElement>> GetCollectionAsync(string name);
         IEnumerable<string> GetPrimaryElements();
 
-        IPage GetDefaultFrame();
+        Task<IPage> GetDefaultFrameAsync();
         Frame GetParentFrame();
         Frame GetFrame(string name);
 
-        void GoToPage();
-        void PageTop();
-        void PageDown();
+        Task GoToPageAsync();
+        Task PageTopAsync();
+        Task PageDownAsync();
 
         bool IsLoadElements();
     }

@@ -20,8 +20,8 @@ namespace Molder.Web.Models.Browser
         Task GoToPage(string url);
         Task Refresh();
 
-        void SetCurrentPage(string name, bool loading = true);
-        void UpdateCurrentPage(string name);
+        Task SetCurrentPageAsync(string name, bool loading = true);
+        Task UpdateCurrentPageAsync(string name);
         IPage GetCurrentPage();
 
         Task SwitchTo(int number);

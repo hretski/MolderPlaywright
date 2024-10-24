@@ -27,12 +27,7 @@ namespace Molder.Web.Models.Providers
     public class DriverProvider : IDriverProvider
     {
         #region  WebDriver
-        private AsyncLocal<IWebDriver> _driver = new() { Value = null };
-        public IWebDriver WebDriver
-        {
-            get => _driver.Value;
-            set => _driver.Value = value;
-        }
+        public IWebDriver WebDriver { get; set; }
         #endregion
 
         public Task<string> PageSourceAsync => Task.FromResult(WebDriver.PageSource);
@@ -78,8 +73,9 @@ namespace Molder.Web.Models.Providers
             await Task.CompletedTask;
         }
 
-        public async Task<IWebDriver> GetDriver()
+        public async Task<IWebDriver> GetDriverAsync()
         {
+            await Task.Delay(1000);
             return WebDriver;
         }
 
@@ -93,31 +89,21 @@ namespace Molder.Web.Models.Providers
         {
             var wait = new WebDriverWait(WebDriver, TimeSpan.FromMilliseconds((long)BrowserSettings.Settings.Timeout));
             var alert = wait.Until(ExpectedConditions.AlertIsPresent());
-            return new AlertProvider()
-            {
-                Alert = alert
-            };
+            return await Task.Run(() => new AlertProvider() { Alert = alert });
         }
 
         public async Task<IDriverProvider> GetDefaultFrameAsync()
         {
             var driver = WebDriver.SwitchTo().DefaultContent();
             driver.Wait((int)BrowserSettings.Settings.Timeout).ForPage().ReadyStateComplete();
-            return new DriverProvider()
-            {
-                WebDriver = driver
-            };
+            return await Task.Run(() => new DriverProvider() { WebDriver = driver });
         }
 
         public async Task<IElementProvider> GetElementAsync(string locator, How how)
         {
             var by = how.GetBy(locator);
             var element = WebDriver.Wait((int)BrowserSettings.Settings.Timeout).ForElement(by).ToExist();
-            return new ElementProvider(BrowserSettings.Settings.Timeout, by)
-            {
-                WebElement = element,
-                WebDriver = WebDriver
-            };
+            return await Task.Run(() => new ElementProvider(BrowserSettings.Settings.Timeout, by));
         }
 
         public async Task<IEnumerable<IElementProvider>> GetElementsAsync(string locator, How how)
@@ -125,7 +111,7 @@ namespace Molder.Web.Models.Providers
             var by = how.GetBy(locator);
             var elements = WebDriver.FindAllBy(by);
             var listElement = elements.Select(element => new ElementProvider((int)BrowserSettings.Settings.Timeout, by) { WebElement = element, WebDriver = WebDriver }).Cast<IElementProvider>().ToList();
-            return listElement;
+            return await Task.Run(() => listElement);
         }
 
         public async Task<IDriverProvider> GetFrameAsync(int id)
@@ -133,10 +119,7 @@ namespace Molder.Web.Models.Providers
             Log.Logger().LogDebug($"SwitchTo().Frame by id \"{id}\"");
             var driver = WebDriver.SwitchTo().Frame(id);
             driver.Wait((int)BrowserSettings.Settings.Timeout).ForPage().ReadyStateComplete();
-            return new DriverProvider()
-            {
-                WebDriver = driver
-            };
+            return await Task.Run(() => new DriverProvider() { WebDriver = driver });
         }
 
         public async Task<IDriverProvider> GetFrameAsync(string name)
@@ -145,10 +128,7 @@ namespace Molder.Web.Models.Providers
             WebDriver.Wait((int)BrowserSettings.Settings.Timeout).ForPage().ReadyStateComplete();
             var driver = WebDriver.SwitchTo().Frame(name);
             driver.Wait((int)BrowserSettings.Settings.Timeout).ForPage().ReadyStateComplete();
-            return new DriverProvider()
-            {
-                WebDriver = driver
-            };
+            return await Task.Run(() => new DriverProvider() { WebDriver = driver });
         }
 
         public async Task<IDriverProvider> GetFrameAsync(By by)
@@ -157,20 +137,14 @@ namespace Molder.Web.Models.Providers
             var element = WebDriver.FindElement(by);
             var driver = WebDriver.SwitchTo().Frame(element);
             driver.Wait((int)BrowserSettings.Settings.Timeout).ForPage().ReadyStateComplete();
-            return new DriverProvider()
-            {
-                WebDriver = driver
-            };
+            return await Task.Run(() => new DriverProvider() { WebDriver = driver });
         }
 
         public async Task<IDriverProvider> GetParentFrameAsync()
         {
             var driver = WebDriver.SwitchTo().ParentFrame();
             driver.Wait((int)BrowserSettings.Settings.Timeout).ForPage().ReadyStateComplete();
-            return new DriverProvider()
-            {
-                WebDriver = driver
-            };
+            return await Task.Run(() => new DriverProvider() { WebDriver = driver });
         }
 
         public async Task GoToUrlAsync(string url)
@@ -202,7 +176,7 @@ namespace Molder.Web.Models.Providers
         {
             var screenshotMaker = new ScreenshotMaker();
             screenshotMaker.RemoveScrollBarsWhileShooting();
-            return WebDriver.TakeScreenshot(screenshotMaker);
+            return await Task.Run(() => WebDriver.TakeScreenshot(screenshotMaker));
         }
 
         public async Task SwitchToAsync(int number)

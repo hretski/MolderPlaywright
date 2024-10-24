@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <PackageReference Include="Molder" Version="2.3.0" />
-    <PackageReference Include="ReportPortal.Shared" Version="3.7.0" />
+    <PackageReference Include="ReportPortal.Shared" Version="3.9.0" />
     <PackageReference Include="SpecFlow" Version="3.9.74" />
   </ItemGroup>
 

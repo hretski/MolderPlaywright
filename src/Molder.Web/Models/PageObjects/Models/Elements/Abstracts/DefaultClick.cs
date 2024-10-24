@@ -1,6 +1,7 @@
 ﻿using Molder.Web.Models.Providers;
 using OpenQA.Selenium.Interactions;
 using System;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.PageObjects.Elements
 {
@@ -8,11 +9,11 @@ namespace Molder.Web.Models.PageObjects.Elements
     {
         public DefaultClick(string name, string locator, bool optional = false) : base(name, locator, optional) { }
 
-        public virtual void Click()
+        public virtual async Task ClickAsync()
         {
-            if (Enabled && Displayed)
+            if (await Enabled && await Displayed)
             {
-                mediator.Execute(() => ElementProvider.Click());
+                await Mediator.ExecuteAsync(async () => await ElementProvider.ClickAsync());
             }
             else
             {
@@ -20,12 +21,13 @@ namespace Molder.Web.Models.PageObjects.Elements
             }
         }
 
-        public virtual void DoubleClick()
+        public virtual async Task DoubleClickAsync()
         {
-            if (Enabled && Displayed)
+            if (await Enabled && await Displayed)
             {
-                var action = new Actions(Driver.GetDriver());
-                mediator.Execute(() => action.DoubleClick(((ElementProvider)ElementProvider).WebElement).Build().Perform());
+                var driver = await Driver.GetDriverAsync();
+                var action = new Actions((OpenQA.Selenium.IWebDriver)driver);
+                await Mediator.ExecuteAsync(() => action.DoubleClick(((ElementProvider)ElementProvider).WebElement).Build().Perform());
             }
             else
             {
@@ -33,12 +35,13 @@ namespace Molder.Web.Models.PageObjects.Elements
             }
         }
 
-        public virtual void ClickAndHold()
+        public virtual async Task ClickAndHold()
         {
-            if (Enabled && Displayed)
+            if (await Enabled && await Displayed)
             {
-                var action = new Actions(Driver.GetDriver());
-                mediator.Execute(() => action.ClickAndHold(((ElementProvider)ElementProvider).WebElement).Build().Perform());
+                var driver = await Driver.GetDriverAsync();
+                var action = new Actions((OpenQA.Selenium.IWebDriver)driver);
+                await Mediator.ExecuteAsync(() => action.ClickAndHold(((ElementProvider)ElementProvider).WebElement).Build().Perform());
             }
             else
             {

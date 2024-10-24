@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.PageObjects.Elements
 {
@@ -6,13 +7,14 @@ namespace Molder.Web.Models.PageObjects.Elements
     {
         public A(string name, string locator, bool optional = false) : base(name, locator, optional) { }
 
-        public string Href => GetHref();
+        public Task<string> Href => GetHrefAsync();
 
-        private string GetHref()
+        private async Task<string> GetHrefAsync()
         {
-            if (Enabled && Displayed)
+            if (await Enabled && await Displayed)
             {
-                return (string)mediator.Execute(() => ElementProvider.GetAttribute("href"));
+                var result = await Mediator.ExecuteAsync(async () => await ElementProvider.TextMatchAsync("href"));
+                return result as string;
             }
 
             throw new ArgumentException($"Проверьте, что элемент \"{Name}\" Enabled и Displayed");

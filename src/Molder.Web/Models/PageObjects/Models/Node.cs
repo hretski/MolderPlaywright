@@ -10,5 +10,10 @@ namespace Molder.Web.Models
         public ObjectType Type { get; set; }
         public Node Root { get; set; }
         public IEnumerable<Node> Childrens { get; set; }
+
+        public Node Clone() 
+        {
+            return MemberwiseClone() as Node;
+        }
     }
 }

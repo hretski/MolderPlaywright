@@ -20,7 +20,7 @@ namespace Molder.Web.Models
     {
         private VariableController _variableController;
 
-        public IEnumerable<Node> Pages { get; } = default;
+        public IEnumerable<Node> Pages { get; }
 
         public PageObject(VariableController variableController)
         {

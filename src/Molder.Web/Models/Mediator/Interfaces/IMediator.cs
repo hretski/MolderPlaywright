@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.Mediator
 {
     public interface IMediator
     {
-        void Execute(Action action);
-        object Execute<TResult>(Func<TResult> action);
-        object Wait<TResult>(Func<TResult> action);
+        Task ExecuteAsync(Action action);
+        Task<object> ExecuteAsync<TResult>(Func<TResult> action);
+        Task<object> WaitAsync<TResult>(Func<TResult> action);
     }
 }

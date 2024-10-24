@@ -11,17 +11,13 @@ using System.Threading;
 using Molder.Web.Exceptions;
 using Molder.Web.Extensions;
 using Molder.Web.Infrastructures;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.PageObjects.Elements
 {
     public class Element : IElement, ICloneable
     {
-        private AsyncLocal<IMediator> _elementMediator = new() { Value = null };
-        protected IMediator mediator
-        {
-            get => _elementMediator.Value;
-            set => _elementMediator.Value = value;
-        }
+        protected IMediator Mediator { get; set; }
 
         public IDriverProvider Driver { get; set; } = default;
         public IElementProvider ElementProvider { get; set; } = default;
@@ -48,59 +44,172 @@ namespace Molder.Web.Models.PageObjects.Elements
             How = how;
         }
 
-        public string Text => mediator.Execute(() => ElementProvider.Text) as string;
-        public object Value => mediator.Execute(() => GetAttribute("value"));
-        public string Tag => mediator.Execute(() => ElementProvider.Tag) as string;
-        public bool Loaded => (bool)mediator.Wait(() => ElementProvider != null);
-        public bool NotLoaded => (bool)mediator.Wait(() => ElementProvider == null);
-        public bool Enabled => (bool)mediator.Wait(() => ElementProvider.Enabled);
-        public bool Disabled => (bool)mediator.Wait(() => !ElementProvider.Enabled);
-        public bool Displayed => (bool)mediator.Wait(() => ElementProvider.Displayed);
-        public bool NotDisplayed => (bool)mediator.Wait(() => !ElementProvider.Displayed);
-        public bool Selected => (bool)mediator.Wait(() => ElementProvider.Selected);
-        public bool NotSelected => (bool)mediator.Wait(() => !ElementProvider.Selected);
-        public bool Editabled => (bool)mediator.Wait(IsEditabled);
-        public bool NotEditable => (bool)mediator.Wait(() => !IsEditabled());
+        public Task<string> Text => Mediator.ExecuteAsync(async () =>
+        {
+            string result = await ElementProvider.Text;
+            return result;
+        }).ContinueWith(task =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            if (task.IsFaulted)
+            {
+                tcs.SetException(task.Exception.InnerExceptions);
+            }
+            else if (task.IsCanceled)
+            {
+                tcs.SetCanceled();
+            }
+            else
+            {
+                tcs.SetResult(task.Result as string);
+            }
+            return tcs.Task;
+        }).Unwrap();
+        public Task<object> Value => Mediator.ExecuteAsync(async () => await GetAttributeAsync("value"));
+        public Task<string> Tag => Mediator.ExecuteAsync(async () =>
+        {
+            string result = await ElementProvider.Tag;
+            return result;
+        }).ContinueWith(task =>
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            if (task.IsFaulted)
+            {
+                tcs.SetException(task.Exception.InnerExceptions);
+            }
+            else if (task.IsCanceled)
+            {
+                tcs.SetCanceled();
+            }
+            else
+            {
+                tcs.SetResult(task.Result as string);
+            }
+            return tcs.Task;
+        }).Unwrap();
+        public Task<bool> Loaded
+        {
+            get
+            {
+                object result = Mediator.WaitAsync(() => ElementProvider != null);
+                return Task.FromResult((bool)result);
+            }
+        }
+        public Task<bool> NotLoaded
+        { 
+            get
+            {
+                object result = Mediator.WaitAsync(() => ElementProvider == null);
+                return Task.FromResult((bool)result);
+            }
+        }
+        public Task<bool> Enabled
+        {
+            get
+            {
+                object result = Mediator.WaitAsync(async () => await ElementProvider.Enabled);
+                return Task.FromResult((bool)result);
+            }    
+    }
+        public Task<bool> Disabled
+        {
+            get
+            {
+                object result = Mediator.WaitAsync(async () => await ElementProvider.Disabled);
+                return Task.FromResult((bool)result);
+            }
+        }
+        public Task<bool> Displayed
+        {
+            get
+            {
+                object result = Mediator.WaitAsync(async () => await ElementProvider.Displayed);
+                return Task.FromResult((bool)result);
+            }
+        }
+        public Task<bool> NotDisplayed
+        {
+            get
+            {
+                object result = Mediator.WaitAsync(async () => await ElementProvider.NotDisplayed);
+                return Task.FromResult((bool)result);
+            }
+        }
+        public Task<bool> Selected
+        {
+            get
+            {
+                object result = Mediator.WaitAsync(async () => await ElementProvider.Selected);
+                return Task.FromResult((bool)result);
+            }
+        }
+        public Task<bool> NotSelected
+        {
+            get
+            {
+                object result = Mediator.WaitAsync(async () => await ElementProvider.NotSelected);
+                return Task.FromResult((bool)result);
+            }
+        }
+        public Task<bool> Editabled
+        {
+            get
+            {
+                object result = Mediator.WaitAsync(async () => await IsEditabledAsync());
+                return Task.FromResult((bool)result);
+            }
+        }
+
+        public Task<bool> NotEditable
+        {
+            get
+            {
+                object result = Mediator.WaitAsync(async () => !await IsEditabledAsync());
+                return Task.FromResult((bool)result);
+            }
+        }
 
         public void SetProvider(IDriverProvider provider)
         {
             Driver = provider;
-            mediator = new ElementMediator(BrowserSettings.Settings.Timeout);
+            Mediator = new ElementMediator(BrowserSettings.Settings.Timeout);
         }
 
-        public void Get()
+        public async Task GetAsync()
         {
-            ElementProvider = mediator.Execute(() => Driver.GetElement(Locator, How)) as
+            ElementProvider = await Mediator.ExecuteAsync(async () => await Driver.GetElementAsync(Locator, How)) as
                 IElementProvider;
         }
 
-        public IElement Find(Node element, How how = How.XPath)
+        public async Task<IElement> FindAsync(Node element, How how = How.XPath)
         {
             var by = how.GetBy(((Element)element.Object).Locator.GetStringByRegex());
-            ((Element) element.Object).mediator = new ElementMediator(BrowserSettings.Settings.Timeout);
-            ((Element) element.Object).ElementProvider = ElementProvider.FindElement(by);
+            ((Element) element.Object).Mediator = new ElementMediator(BrowserSettings.Settings.Timeout);
+            ((Element) element.Object).ElementProvider = (IElementProvider)await ElementProvider.FindElementsAsync(by);
             return (IElement)element.Object;
         }
 
-        public IEnumerable<IElement> FindAll(Node element, How how = How.XPath)
+        public async Task<IEnumerable<IElement>> FindAllAsync(Node element, How how = How.XPath)
         {
             var by = how.GetBy(((Element)element.Object).Locator.GetStringByRegex());
-            var elements = ElementProvider.FindElements(by);
+            var elements = await ElementProvider.FindElementsAsync(by);
             var listElement = new List<IElement>();
             foreach (var tmpElement in elements)
             {
-                ((Element)element.Object).mediator = new ElementMediator(BrowserSettings.Settings.Timeout);
+                ((Element)element.Object).Mediator = new ElementMediator(BrowserSettings.Settings.Timeout);
                 ((Element)element.Object).ElementProvider = tmpElement;
                 listElement.Add((IElement)element.Object);
             }
             return listElement.AsReadOnly();
         }
 
-        public void Clear()
+        public async Task ClearAsync()
         {
             try
             {
-                ElementProvider.Clear();
+                await ElementProvider.ClearAsync();
             }
             catch (Exception ex)
             {
@@ -108,21 +217,23 @@ namespace Molder.Web.Models.PageObjects.Elements
             }
         }
 
-        public string GetAttribute(string name)
+        public async Task<string> GetAttributeAsync(string name)
         {
-            return mediator.Execute(() => ElementProvider.GetAttribute(name)) as string;
+            var result = await Mediator.ExecuteAsync(async () => await ElementProvider.GetAttributeAsync(name));
+            return result as string;
         }
-        public void Move()
+        public async Task MoveAsync()
         {
-            var action = new Actions(Driver.GetDriver());
-            mediator.Execute(() => action.MoveToElement(((ElementProvider)ElementProvider).WebElement).Build().Perform());
+            var driver = await Driver.GetDriverAsync();
+            var action = new Actions((IWebDriver)driver);
+            await Task.Run(() => action.MoveToElement(((ElementProvider)ElementProvider).WebElement).Build().Perform());
         }
-        public void PressKeys(string keys)
+        public async Task PressKeysAsync(string keys)
         {
             var field = typeof(Keys).GetField(keys, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Static);
-            if (Enabled && Displayed)
+            if (await Enabled && await Displayed)
             {
-                mediator.Execute(() => ElementProvider.SendKeys((string)field?.GetValue(null)));
+                await Task.Run(async () => await ElementProvider.SendKeysAsync((string)field?.GetValue(null)));
             }
             else
             {
@@ -130,41 +241,44 @@ namespace Molder.Web.Models.PageObjects.Elements
             }
         }
 
-        public bool IsTextContains(string text)
+        public async Task<bool> IsTextContainsAsync(string text)
         {
-            return (bool)mediator.Wait(() => ElementProvider.TextContain(text));
+            var result = await Mediator.ExecuteAsync(async () => await ElementProvider.TextContainAsync(text));
+            return (bool)result;
         }
 
-        public bool IsTextEquals(string text)
+        public async Task<bool> IsTextEqualsAsync(string text)
         {
-            return (bool)mediator.Wait(() => ElementProvider.TextEqual(text));
+            var result = await Mediator.ExecuteAsync(async () => await ElementProvider.TextEqualAsync(text));
+            return (bool)result;
         }
 
-        public bool IsTextMatch(string text)
+        public async Task<bool> IsTextMatchAsync(string text)
         {
-            return (bool)mediator.Wait(() => ElementProvider.TextMatch(text));
+            var result = await Mediator.ExecuteAsync(async () => await ElementProvider.TextMatchAsync(text));
+            return (bool)result;
         }
 
-        public void WaitUntilAttributeValueEquals(string attributeName, string attributeValue)
+        public async Task WaitUntilAttributeValueEqualsAsync(string attributeName, string attributeValue)
         {
-            mediator.Execute(() => ElementProvider.WaitUntilAttributeValueEquals(attributeName, attributeValue));
+            await Mediator.ExecuteAsync(async () => await ElementProvider.WaitUntilAttributeValueEqualsAsync(attributeName, attributeValue));
         }
 
-        private bool IsEditabled()
+        private async Task<bool> IsEditabledAsync()
         {
-            return Convert.ToBoolean(GetAttribute("readonly"));
+            return await Task.FromResult(Convert.ToBoolean(await GetAttributeAsync("readonly")));
         }
 
         #region Get webDriver Element
 
-        protected void GetElement(string locator, How how = How.XPath)
+        protected async Task GetElement(string locator, How how = How.XPath)
         {
-            ElementProvider = GetElementBy(locator, how);
+            ElementProvider = await GetElementByAsync(locator, how);
         }
 
-        private IElementProvider GetElementBy(string locator, How how = How.XPath)
+        private async Task<IElementProvider> GetElementByAsync(string locator, How how = How.XPath)
         {
-            return mediator.Execute(() => Driver.GetElement(locator, how)) as
+            return await Mediator.ExecuteAsync(async () => await Driver.GetElementAsync(locator, how)) as
                 IElementProvider;
         }
 

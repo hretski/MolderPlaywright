@@ -14,7 +14,7 @@ namespace Molder.Web.Models.PageObjects.Alerts
         public Alert(IDriverProvider driverProvider)
         {
             var mediator = new AsyncLocal<IMediator>{ Value = new AlertMediator(BrowserSettings.Settings.Timeout) };
-            _alertProvider = (IAlertProvider)mediator.Value.Wait(driverProvider.GetAlert);
+            _alertProvider = (IAlertProvider)mediator.Value.WaitAsync(driverProvider.GetAlertAsync);
         }
 
         public void Accept()

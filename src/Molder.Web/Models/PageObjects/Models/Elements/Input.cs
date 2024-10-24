@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.PageObjects.Elements
 {
@@ -6,11 +7,11 @@ namespace Molder.Web.Models.PageObjects.Elements
     {
         public Input(string name, string locator, bool optional) : base(name, locator, optional) { }
 
-        public virtual void SetText(string text)
+        public virtual async Task SetTextAsync(string text)
         {
-            if (Enabled && Displayed)
+            if (await Enabled && await Displayed)
             {
-                mediator.Execute(() => ElementProvider.SendKeys(text));
+                await Mediator.ExecuteAsync(async () => await ElementProvider.SendKeysAsync(text));
             }
             else
             {
@@ -18,11 +19,11 @@ namespace Molder.Web.Models.PageObjects.Elements
             }
         }
 
-        public new void Clear()
+        public new async Task ClearAsync()
         {
-            if (Enabled && Displayed)
+            if (await Enabled && await Displayed)
             {
-                mediator.Execute(() => ElementProvider.Clear());
+                await Mediator.ExecuteAsync(async () => await ElementProvider.ClearAsync());
             }
             else
             {

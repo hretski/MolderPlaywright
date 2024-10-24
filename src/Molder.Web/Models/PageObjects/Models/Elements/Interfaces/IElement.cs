@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Molder.Web.Infrastructures;
 using Molder.Web.Models.Providers;
 
@@ -12,34 +13,34 @@ namespace Molder.Web.Models.PageObjects.Elements
         #endregion
         #region Getters & Setters
 
-        string Text { get; }
-        string Tag { get; }
-        object Value { get; }
-        bool Loaded { get; }
-        bool NotLoaded { get; }
-        bool Enabled { get;  }
-        bool Disabled { get; }
-        bool Displayed { get;  }
-        bool NotDisplayed { get; }
-        bool Selected { get; }
-        bool NotSelected { get; }
-        bool Editabled { get; }
-        bool NotEditable { get; }
+        Task<string> Text { get; }
+        Task<string> Tag { get; }
+        Task<object> Value { get; }
+        Task<bool> Loaded { get; }
+        Task<bool> NotLoaded { get; }
+        Task<bool> Enabled { get;  }
+        Task<bool> Disabled { get; }
+        Task<bool> Displayed { get;  }
+        Task<bool> NotDisplayed { get; }
+        Task<bool> Selected { get; }
+        Task<bool> NotSelected { get; }
+        Task<bool> Editabled { get; }
+        Task<bool> NotEditable { get; }
         #endregion
         
         void SetProvider(IDriverProvider provider);
-        public void Get();
-        IElement Find(Node element, How how = How.XPath);
-        IEnumerable<IElement> FindAll(Node element, How how = How.XPath);
+        Task GetAsync();
+        Task<IElement> FindAsync(Node element, How how = How.XPath);
+        Task<IEnumerable<IElement>> FindAllAsync(Node element, How how = How.XPath);
 
-        void Clear();
-        string GetAttribute(string name);
-        void Move();
-        void PressKeys(string keys);
+        Task ClearAsync();
+        Task<string> GetAttributeAsync(string name);
+        Task MoveAsync();
+        Task PressKeysAsync(string keys);
 
-        bool IsTextContains(string text);
-        bool IsTextEquals(string text);
-        bool IsTextMatch(string text);
+        Task<bool> IsTextContainsAsync(string text);
+        Task<bool> IsTextEqualsAsync(string text);
+        Task<bool> IsTextMatchAsync(string text);
 
         object Clone();
     }

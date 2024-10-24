@@ -6,6 +6,8 @@ using System.Diagnostics.CodeAnalysis;
 using Molder.Web.Models.Browser;
 using System.Threading;
 using Molder.Web.Infrastructures;
+using System.Collections.Generic;
+using Molder.Web.Models;
 
 namespace Molder.Web.Controllers
 {
@@ -23,16 +25,16 @@ namespace Molder.Web.Controllers
         /// <returns>Браузер</returns>
         public static IBrowser GetBrowser()
         {
-            return Browser.Value ?? Create();
+            return Browser.Value ?? null;
         }
 
-        private static IBrowser Create()
+        public static IBrowser Create(IEnumerable<Node> pages)
         {
             switch (BrowserSettings.Settings.Browser)
             {
                 case BrowserType.CHROME:
                 {
-                    Browser.Value = new Chrome();
+                    Browser.Value = new Chrome(pages);
                     //Log.Logger().LogInformation($"ChromeBrowser session is - {Browser.Value.SessionId}");
                     return Browser.Value;
                 }

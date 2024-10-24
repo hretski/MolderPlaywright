@@ -7,6 +7,7 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Remote;
 using System;
 using OpenQA.Selenium;
+using System.Collections.Generic;
 
 namespace Molder.Web.Models.Browser
 {
@@ -14,8 +15,9 @@ namespace Molder.Web.Models.Browser
     {
         //public sealed override SessionId SessionId { get; protected set; }
 
-        public Chrome()
+        public Chrome(IEnumerable<Node> pages)
         {
+            Pages = pages;
             var options = CreateOptions();
             var timeout = BrowserSettings.Settings.Timeout ?? Constants.DEFAULT_TIMEOUT;
             if(BrowserSettings.Settings.IsRemoteRun())

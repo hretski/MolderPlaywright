@@ -1,5 +1,6 @@
 ﻿using OpenQA.Selenium;
 using OpenQA.Selenium.Remote;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.PageObjects.Elements
 {
@@ -7,14 +8,14 @@ namespace Molder.Web.Models.PageObjects.Elements
     {
         public File(string name, string locator, bool optional) : base(name, locator, optional) { }
 
-        public override void SetText(string text)
+        public override async Task SetTextAsync(string text)
         {
-            if (Driver.GetDriver() is IAllowsFileDetection allowsDetection)
+            if (await Driver.GetDriverAsync() is IAllowsFileDetection allowsDetection)
             {
                 allowsDetection.FileDetector = new LocalFileDetector();
             }
 
-            mediator.Execute(() => ElementProvider.SendKeys(text));
+            await Mediator.ExecuteAsync(async () => await ElementProvider.SendKeysAsync(text));
         }
     }
 }

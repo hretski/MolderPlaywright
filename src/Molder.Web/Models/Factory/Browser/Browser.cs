@@ -10,24 +10,22 @@ using Molder.Helpers;
 using OpenQA.Selenium.Remote;
 using IAlert = Molder.Web.Models.PageObjects.Alerts.IAlert;
 using System.Threading.Tasks;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace Molder.Web.Models.Browser
 {
     public abstract class Browser : IBrowser, IDisposable
     {
         #region Node for current *
-        
-        private AsyncLocal<Node> _currentPage = new() { Value = null };
-        
+
+        public IEnumerable<Node> Pages { get; init; }
+
+        public Node CurrentPage { get; set; }
+
         #endregion
 
-        private AsyncLocal<IDriverProvider> _provider = new() { Value = new DriverProvider() };
-
-        public IDriverProvider DriverProvider
-        {
-            get => _provider.Value;
-            set => _provider.Value = value;
-        }
+        public IDriverProvider DriverProvider { get; set; } = new DriverProvider();
 
         public Task<string> Url => DriverProvider.UrlAsync;
         public Task<string> Title => DriverProvider.TitleAsync;
@@ -35,39 +33,43 @@ namespace Molder.Web.Models.Browser
 
         //public abstract SessionId SessionId { get; protected set; }
 
-        public void SetCurrentPage(string name, bool loading = true)
+        public async Task SetCurrentPageAsync(string name, bool loading = true)
         {
             Log.Logger().LogInformation($"SetCurrentPage is {name} {(loading ? "with load primary element" : "without load element")}");
-            var page = TreePages.Get().SearchPageBy(name);
-            _currentPage.Value = page;
-            (_currentPage.Value.Object as Page)?.SetProvider(_provider.Value);
-            ((Page) _currentPage.Value.Object).Root = page;
-            ((Page) _currentPage.Value.Object).Local = null;
-            
+            var page = Pages?.SearchPageBy(name);
+            CurrentPage = page;
+
+            var objectPage = CurrentPage?.Object as Page;
+            ArgumentNullException.ThrowIfNull(objectPage, nameof(CurrentPage));
+
+            objectPage?.SetProvider(DriverProvider);
+            objectPage.Root = page;
+            objectPage.Local = null;
+
             if (!loading) return;
             
             try
             {
-                ((Page) _currentPage.Value.Object).GoToPage();
+                await ((Page) CurrentPage.Object).GoToPageAsync();
             }
             catch
             {
-                throw new PageException($"Going to page \"{name}\" at \"{(_currentPage.Value.Object as Page)?.Url}\" failed");
+                throw new PageException($"Going to page \"{name}\" at \"{(CurrentPage.Object as Page)?.Url}\" failed");
             }
         }
 
-        public void UpdateCurrentPage(string name)
+        public async Task UpdateCurrentPageAsync(string name)
         {
-            SetCurrentPage(name, false);
+            await SetCurrentPageAsync(name, false);
         }
 
         public IPage GetCurrentPage()
         {
-            if (_currentPage == null)
+            if (CurrentPage == null)
             {
                 throw new NullReferenceException("Current page is null.");
             }
-            return _currentPage.Value.Object as IPage;
+            return CurrentPage.Object as IPage;
         }
 
         public async Task Close()

@@ -20,6 +20,7 @@ namespace Molder.Web.Models.Providers
         // Методы управления драйвером
         Task CreateDriverAsync(BrowserType browserType);
         Task CloseAsync();
+        Task<IWebDriver> GetDriverAsync();
         Task QuitAsync();
         Task WindowSizeAsync(int width, int height);
         Task MaximizeAsync();

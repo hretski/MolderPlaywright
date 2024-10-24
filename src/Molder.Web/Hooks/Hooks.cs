@@ -8,12 +8,15 @@ using Molder.Web.Models;
 using Molder.Web.Models.Settings;
 using Molder.Web.Extensions;
 using TechTalk.SpecFlow;
+using BoDi;
+using System.Collections.Concurrent;
 
 namespace Molder.Web.Hooks
 {
     [Binding]
     public class Hooks : TechTalk.SpecFlow.Steps
     {
+        private static readonly ConcurrentBag<IObjectContainer> TestTreadContainers = new();
         [BeforeTestRun(Order = -9000000)]
         public static void InitializeConfiguration()
         {
@@ -30,15 +33,21 @@ namespace Molder.Web.Hooks
             }
         }
 
-        [BeforeFeature]
-        public static void BeforeFeature(VariableController variableController)
+        [BeforeScenario(Order = 10000)]
+        public static void BeforeFeature(VariableController variableController, IObjectContainer objectContainer)
         {
-            TreePages.SetVariables(variableController);
-            TreePages.Get();
-            var pageObject = TreePages.Get();
-            Log.Logger().LogDebug(pageObject.PageObjectToString());
+            var pageObject = new PageObject(variableController);
+
+            objectContainer.RegisterInstanceAs(pageObject.Pages);
         }
-        
+
+        [BeforeScenario(Order = -10)]
+        public void BeforeScenario(ScenarioContext scenario)
+        {
+            var testThreadContainer = scenario.ScenarioContainer.Resolve<IObjectContainer>();
+            TestTreadContainers.Add(testThreadContainer);
+        }
+
         [AfterScenario]
         public void AfterScenario(ScenarioContext scenario)
         {
@@ -46,6 +55,16 @@ namespace Molder.Web.Hooks
             {
                 //TODO
                 // Add create screenshot: FeatureDirectory/ScenarioDirectory/time_ScenarioName_StepName.png 
+            }
+        }
+
+        [AfterTestRun]
+        public static void AfterTestRun()
+        {
+           var containers = TestTreadContainers.ToArray();
+            foreach (var container in containers)
+            {
+                container.Dispose();
             }
         }
     }

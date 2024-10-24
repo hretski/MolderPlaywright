@@ -1,6 +1,5 @@
 ﻿using Molder.Controllers;
 using Molder.Web.Controllers;
-using FluentAssertions;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -10,6 +9,12 @@ using TechTalk.SpecFlow;
 using TechTalk.SpecFlow.Assist;
 using Molder.Web.Models.PageObjects.Elements;
 using Molder.Web.Models.Proxy;
+using System.Threading.Tasks;
+using BoDi;
+using Molder.Web.Models.Settings;
+using System.Collections.Generic;
+using Molder.Web.Models;
+using FluentAssertions;
 
 namespace Molder.Web.Steps
 {
@@ -17,10 +22,25 @@ namespace Molder.Web.Steps
     public class Steps
     {
         private readonly VariableController variableController;
+        private readonly FeatureContext featureContext;
+        private readonly ScenarioContext scenarioContext;
+        private  IObjectContainer objectContainer;
+        private readonly Settings settings;
+        private readonly IEnumerable<Node> pages;
 
-        public Steps(VariableController variableController)
+        public Steps(
+            VariableController variableController,
+            FeatureContext featureContext,
+            ScenarioContext scenarioContext,
+            IObjectContainer objectContainer,
+            IEnumerable<Node> pages
+            )
         {
             this.variableController = variableController;
+            this.featureContext = featureContext;
+            this.scenarioContext = scenarioContext;
+            this.objectContainer = objectContainer;
+            this.pages = pages;
         }
 
         [StepArgumentTransformation]
@@ -32,61 +52,63 @@ namespace Molder.Web.Steps
         [Given(@"я инициализирую браузер")]
         public void StartBrowser()
         {
-            BrowserController.GetBrowser();
+            var browser = BrowserController.Create(pages);
+            objectContainer.RegisterInstanceAs(browser);
+            scenarioContext.ScenarioContainer.RegisterInstanceAs(browser);
         }
 
         [StepDefinition(@"установлено разрешение окна браузера ([0-9]+) X ([0-9]+)")]
-        public void SetSizeBrowserWindow(int width, int height)
+        public async Task SetSizeBrowserWindow(int width, int height)
         {
-            BrowserController.GetBrowser().WindowSize(width, height);
+            await BrowserController.GetBrowser().WindowSize(width, height);
         }
 
         [StepDefinition(@"я развернул веб-страницу на весь экран")]
-        public void MaximizeWindow()
+        public async Task MaximizeWindow()
         {
-            BrowserController.GetBrowser().Maximize();
+            await BrowserController.GetBrowser().Maximize();
         }
 
         [Given(@"я перехожу на страницу \""(.+)\""")]
-        public void SetCurrentPage(string name)
+        public async Task SetCurrentPageAsync(string name)
         {
-            BrowserController.GetBrowser().SetCurrentPage(name);
+            await BrowserController.GetBrowser().SetCurrentPageAsync(name);
         }
 
         [StepDefinition(@"я обновляю текущую страницу на \""(.+)\""")]
-        public void UpdateCurrentPage(string name)
+        public async Task UpdateCurrentPageAsync(string name)
         {
-            BrowserController.GetBrowser().UpdateCurrentPage(name);
+            await BrowserController.GetBrowser().UpdateCurrentPageAsync(name);
         }
 
         [StepDefinition(@"я обновляю веб-страницу")]
-        public void Refresh()
+        public async Task Refresh()
         {
-            BrowserController.GetBrowser().Refresh();
+            await BrowserController.GetBrowser().Refresh();
         }
 
         [StepDefinition(@"я сохраняю адрес активной веб-страницы в переменную \""(.+)\""")]
-        public void SaveUrlActivePage(string varName)
+        public async Task SaveUrlActivePage(string varName)
         {
             variableController.Variables.Should().NotContainKey(varName, $"переменная \"{varName}\" уже существует");
 
-            var url = BrowserController.GetBrowser().Url;
+            var url = await BrowserController.GetBrowser().Url;
             variableController.SetVariable(varName, url.GetType(), url);
         }
 
         [StepDefinition(@"я сохраняю заголовок активной веб-страницы в переменную \""(.+)\""")]
-        public void SaveTitleActiveWebPage(string varName)
+        public async Task SaveTitleActiveWebPage(string varName)
         {
             variableController.Variables.Should().NotContainKey(varName, $"переменная \"{varName}\" уже существует");
 
-            var title = BrowserController.GetBrowser().Title;
+            var title = await BrowserController.GetBrowser().Title;
             variableController.SetVariable(varName, title.GetType(), title);
         }
 
         [StepDefinition(@"я закрываю веб-страницу")]
-        public void CloseWebPage()
+        public async Task CloseWebPage()
         {
-            BrowserController.GetBrowser().Close();
+            await BrowserController.GetBrowser().Close();
         }
 
         [StepDefinition(@"я закрываю браузер")]
@@ -96,25 +118,26 @@ namespace Molder.Web.Steps
         }
 
         [StepDefinition(@"совершен переход в начало веб-страницы")]
-        public void GoPageTop()
+        public async Task GoPageTop()
         {
-            BrowserController.GetBrowser().GetCurrentPage().PageTop();
+            await BrowserController.GetBrowser().GetCurrentPage().PageTopAsync();
         }
 
         [StepDefinition(@"совершен переход в конец веб-страницы")]
-        public void GoPageDown()
+        public async Task GoPageDownAsync()
         {
-            BrowserController.GetBrowser().GetCurrentPage().PageDown();
+            await BrowserController.GetBrowser().GetCurrentPage().PageDownAsync();
         }
 
         [StepDefinition(@"выполнен переход на вкладку номер ([1-9]+)")]
-        public void GoToTabByNumber(int number)
+        public async Task GoToTabByNumberAsync(int number)
         {
             (number--).Should().BePositive("неверно задан номер вкладки");
-            number.Should().BeLessOrEqualTo(BrowserController.GetBrowser().Tabs,
+            int tabsCount = await BrowserController.GetBrowser().Tabs;
+            number.Should().BeLessOrEqualTo(tabsCount,
                 "выбранной вкладки не существует");
 
-            BrowserController.GetBrowser().SwitchTo(number);
+            await BrowserController.GetBrowser().SwitchTo(number);
         }
 
         #region Проверка работы с Alert
@@ -163,70 +186,78 @@ namespace Molder.Web.Steps
 
         #region Проверка адреса активной веб страницы
         [Then(@"адрес активной веб-страницы содержит значение \""(.+)\""")]
-        public void WebPageUrlContainsExpected(string expected)
+        public async Task WebPageUrlContainsExpectedAsync(string expected)
         {
             expected.Should().NotBeNull($"значение \"expected\" не задано");
             expected = variableController.ReplaceVariables(expected) ?? expected;
-            BrowserController.GetBrowser().Url.Should().Contain(expected, $"адрес активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Url}\" не содержит \"{expected}\"");
+            var url = await BrowserController.GetBrowser().Url;
+            url.Should().Contain(expected, $"адрес активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Url}\" не содержит \"{expected}\"");
         }
         
 
         [Then(@"адрес активной веб-страницы не содержит значение \""(.+)\""")]
-        public void WebPageUrlNotContainsExpected(string expected)
+        public async Task WebPageUrlNotContainsExpectedAsync(string expected)
         {
             expected.Should().NotBeNull($"значение \"expected\" не задано");
             expected = this.variableController.ReplaceVariables(expected) ?? expected;
-            BrowserController.GetBrowser().Url.Should().NotContain(expected, $"адрес активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Url}\" содержит \"{expected}\"");
+            var url = await BrowserController.GetBrowser().Url;
+           url.Should().NotContain(expected, $"адрес активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Url}\" содержит \"{expected}\"");
         }
 
         [Then(@"адрес активной веб-страницы равен значению \""(.+)\""")]
-        public void WebPageUrlEqualExpected(string expected)
+        public async Task WebPageUrlEqualExpectedAsync(string expected)
         {
             expected.Should().NotBeNull($"значение \"expected\" не задано");
             expected = this.variableController.ReplaceVariables(expected) ?? expected;
-            BrowserController.GetBrowser().Url.Should().Be(expected, $"адрес активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Url}\" не равен \"{expected}\"");
+            var url = await BrowserController.GetBrowser().Url;
+            url.Should().Be(expected, $"адрес активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Url}\" не равен \"{expected}\"");
         }
 
         [Then(@"адрес активной веб-страницы не равен значению \""(.+)\""")]
-        public void WebPageUrlNotEqualExpected(string expected)
+        public async Task WebPageUrlNotEqualExpectedAsync(string expected)
         {
             expected.Should().NotBeNull($"значение \"expected\" не задано");
             expected = this.variableController.ReplaceVariables(expected) ?? expected;
-            BrowserController.GetBrowser().Url.Should().NotBe(expected, $"адрес активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Url}\" равен \"{expected}\"");
+            var url = await BrowserController.GetBrowser().Url;
+            url.Should().NotBe(expected, $"адрес активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Url}\" равен \"{expected}\"");
         }
 
         #endregion
         #region Проверка заголовка активной веб страницы
         [Then(@"заголовок веб-страницы равен значению \""(.+)\""")]
-        public void WebPageTitleIsEqual(string title)
+        public async Task WebPageTitleIsEqualAsync(string title)
         {
             title.Should().NotBeNull($"значение \"expected\" не задано");
             title = this.variableController.ReplaceVariables(title) ?? title;
-            BrowserController.GetBrowser().Title.Should().Be(title, $"заголовок активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Title}\" не равен \"{title}\"");
+            var titleActual = await BrowserController.GetBrowser().Title;
+            titleActual.Should().Be(title, $"заголовок активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Title}\" не равен \"{title}\"");
         }
 
         [Then(@"заголовок веб-страницы не равен значению \""(.+)\""")]
-        public void WebPageTitleIsNotEqual(string title)
+        public async Task WebPageTitleIsNotEqualAsync(string title)
         {
             title.Should().NotBeNull($"значение \"expected\" не задано");
             title = this.variableController.ReplaceVariables(title) ?? title;
-            BrowserController.GetBrowser().Title.Should().NotBe(title, $"заголовок активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Title}\" равен \"{title}\"");
+            var titleActual = await BrowserController.GetBrowser().Title;
+            titleActual.Should().NotBe(title, $"заголовок активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Title}\" равен \"{title}\"");
         }
 
         [Then(@"заголовок веб-страницы содержит значение \""(.+)\""")]
-        public void WebPageTitleIsContains(string title)
+        public async Task WebPageTitleIsContainsAsync(string title)
         {
             title.Should().NotBeNull($"значение \"expected\" не задано");
             title = this.variableController.ReplaceVariables(title) ?? title;
-            BrowserController.GetBrowser().Title.Should().Contain(title, $"заголовок активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Title}\" не содержит \"{title}\"");
+            var titleActual = await BrowserController.GetBrowser().Title;
+            titleActual.Should().Contain(title, $"заголовок активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Title}\" не содержит \"{title}\"");
         }
 
         [Then(@"заголовок веб-страницы не содержит значение \""(.+)\""")]
-        public void WebPageTitleIsNotContains(string title)
+        public async Task WebPageTitleIsNotContainsAsync(string title)
         {
             title.Should().NotBeNull($"значение \"expected\" не задано");
             title = this.variableController.ReplaceVariables(title) ?? title;
-            BrowserController.GetBrowser().Title.Should().NotContain(title, $"заголовок активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Title}\" содержит \"{title}\"");
+            var titleActual = await BrowserController.GetBrowser().Title;
+            titleActual.Should().NotContain(title, $"заголовок активной веб страницы \"{BrowserController.GetBrowser().GetCurrentPage().Name}\":\"{BrowserController.GetBrowser().Title}\" содержит \"{title}\"");
         }
         
         #endregion
@@ -234,27 +265,28 @@ namespace Molder.Web.Steps
         #region Elements
 
         [StepDefinition(@"я перемещаюсь к элементу \""(.+)\"" на веб-странице")]
-        public void ScrollToElement(string name)
+        public async Task ScrollToElementAsync(string name)
         {
-            BrowserController.GetBrowser().GetCurrentPage().GetElement(name).Move();
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            await element.MoveAsync();
         }
 
         [StepDefinition(@"выполнено нажатие на элемент \""(.+)\"" на веб-странице")]
-        public void ClickToWebElement(string name)
+        public async Task ClickToWebElementAsync(string name)
         {
             var stopwatch = new Stopwatch();
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
             stopwatch.Start();
             try
             {
-                var isDisplayed = element.Displayed;
+                var isDisplayed = await element.Displayed;
                 while (!isDisplayed && stopwatch.Elapsed.Ticks < (TimeSpan.TicksPerSecond * Constants.TIC_IN_SEC))
                 {
-                    isDisplayed = element.Displayed;
+                    isDisplayed = await element.Displayed;
                 }
 
                 (element is DefaultClick).Should().BeTrue($"элемент \"{name}\" имеет отличный от Click профиль");
-                (element as DefaultClick)?.Click();
+                (element as DefaultClick)?.ClickAsync();
                 stopwatch.Stop();
             }
             catch
@@ -264,83 +296,83 @@ namespace Molder.Web.Steps
         }
 
         [StepDefinition(@"выполнено двойное нажатие на элемент \""(.+)\"" на веб-странице")]
-        public void DoubleClickToWebElement(string name)
+        public async Task DoubleClickToWebElement(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
             (element is DefaultClick).Should().BeTrue($"элемент \"{name}\" имеет отличный от Click профиль");
-            (element as DefaultClick)?.DoubleClick();
+            await (element as DefaultClick)?.DoubleClickAsync();
         }
 
         [StepDefinition(@"выполнено нажатие с удержанием на элементе \""(.+)\"" на веб-странице")]
-        public void ClickAndHoldToWebElement(string name)
+        public async Task ClickAndHoldToWebElementAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
             (element is DefaultClick).Should().BeTrue($"элемент \"{name}\" имеет отличный от Click профиль");
             (element as DefaultClick)?.ClickAndHold();
         }
 
         [StepDefinition(@"я ввожу в поле \""(.+)\"" веб-страницы значение \""(.+)\""")]
-        public void InputValueIntoField(string name, string text)
+        public async Task InputValueIntoField(string name, string text)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
             (element is Input).Should().BeTrue($"элемент \"{name}\" имеет отличный от Input профиль");
             
             text.Should().NotBeNull($"значение \"text\" не задано");
             text = this.variableController.ReplaceVariables(text) ?? text;
-            (element as Input)?.SetText(text);
+            await (element as Input)?.SetTextAsync(text);
         }
 
         [StepDefinition(@"я очищаю поле \""(.+)\"" веб-страницы")]
-        public void ClearField(string name)
+        public async Task ClearField(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
             (element is Input).Should().BeTrue($"элемент \"{name}\" имеет отличный от Input профиль");
-            (element as Input)?.Clear();
+            await (element as Input)?.ClearAsync();
         }
 
         [StepDefinition(@"я создаю переменную \""(.+)\"" с текстом из элемента \""(.+)\"" на веб-странице")]
-        public void SetVariableValueOfElementText(string varName, string name)
+        public async Task SetVariableValueOfElementTextAsync(string varName, string name)
         {
             this.variableController.Variables.Should().NotContainKey(varName, $"переменная \"{varName}\" уже существует");
 
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            this.variableController.SetVariable(varName, element.Text.GetType(), element.Text);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            this.variableController.SetVariable(varName, element.Text.GetType(), await element.Text);
         }
 
         [StepDefinition(@"я создаю переменную \""(.+)\"" со значением из элемента \""(.+)\"" на веб-странице")]
-        public void SetVariableValueOfElementValue(string varName, string name)
+        public async Task SetVariableValueOfElementValueAsync(string varName, string name)
         {
             this.variableController.Variables.Should().NotContainKey(varName, $"переменная \"{varName}\" уже существует");
 
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            this.variableController.SetVariable(varName, element.Value.GetType(), element.Value);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            this.variableController.SetVariable(varName, element.Value.GetType(), await element.Value);
         }
 
         [StepDefinition(@"я сохраняю значение атрибута \""(.+)\"" элемента \""(.+)\"" веб-страницы в переменную \""(.+)\""")]
-        public void StoreWebElementValueOfAttributeInVariable(string attribute, string name, string varName)
+        public async Task StoreWebElementValueOfAttributeInVariableAsync(string attribute, string name, string varName)
         {
             this.variableController.Variables.Should().NotContainKey(varName, $"переменная \"{varName}\" уже существует");
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            var attributeValue = element.GetAttribute(attribute);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var attributeValue = await element.GetAttributeAsync(attribute);
             this.variableController.SetVariable(varName, attributeValue.GetType(), attributeValue);
         }
 
         [StepDefinition(@"загружен файл из переменной \""(.+)\"" в элемент \""(.+)\"" на веб-странице")]
-        public void LoadFileToElement(string varName, string name)
+        public async Task LoadFileToElementAsync(string varName, string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
 
             this.variableController.Variables.Should().ContainKey(varName, $"переменная \"{varName}\" не существует");
             var path = this.variableController.GetVariableValueText(varName);
             path.Should().NotBeNull($"путь к файлу \"{varName}\" пустой");
-            (element as File)?.SetText(path);
+            (element as File)?.SetTextAsync(path);
         }
 
         [StepDefinition(@"нажата клавиша \""(.+)\"" на элементе \""(.+)\"" на веб-странице")]
-        public void PressKeyToWebElement(string key, string name)
+        public async Task PressKeyToWebElementAsync(string key, string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.PressKeys(key);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            await element.PressKeysAsync(key);
         }
 
         [Then(@"на веб-странице значение элемента \""(.+)\"" пусто")]
@@ -348,10 +380,11 @@ namespace Molder.Web.Steps
         [Then(@"на веб-странице значение элемента \""(.+)\"" равно пустой строке")]
         [Then(@"на веб-странице значение элемента \""(.+)\"" равно null")]
         [Then(@"на веб-странице значение элемента \""(.+)\"" заполнено пробелами")]
-        public void WebElementValueIsEmpty(string name)
+        public async Task WebElementValueIsEmptyAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Value.ToString().Should().BeNullOrWhiteSpace($"значение элемента \"{name}\" не пусто");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var elementValue = await element.Value;
+            elementValue.ToString().Should().BeNullOrWhiteSpace($"значение элемента \"{name}\" не пустое");
         }
 
         [Then(@"на веб-странице текст элемента \""(.+)\"" пустой")]
@@ -359,129 +392,139 @@ namespace Molder.Web.Steps
         [Then(@"на веб-странице текст элемента \""(.+)\"" равен пустой строке")]
         [Then(@"на веб-странице текст элемента \""(.+)\"" равен null")]
         [Then(@"на веб-странице текст элемента \""(.+)\"" заполнен пробелами")]
-        public void WebElementTextIsEmpty(string name)
+        public async Task WebElementTextIsEmptyAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Text.Should().BeNullOrWhiteSpace($"текст элемента \"{name}\" не пустой");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var elementValue = await element.Text;
+            elementValue.Should().BeNullOrWhiteSpace($"текст элемента \"{name}\" не пустой");
         }
 
         [Then(@"на веб-странице значение элемента \""(.+)\"" заполнено")]
         [Then(@"на веб-странице значение элемента \""(.+)\"" не равно null")]
         [Then(@"на веб-странице значение элемента \""(.+)\"" содержит символы, отличные от пробелов")]
-        public void WebElementValueIsNotEmpty(string name)
+        public async Task WebElementValueIsNotEmptyAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Value.ToString().Should().NotBeNullOrWhiteSpace($"значение элемента \"{name}\" пусто или не существует");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var elementValue = await element.Value;
+            elementValue.ToString().Should().NotBeNullOrWhiteSpace($"значение элемента \"{name}\" пусто или не существует");
         }
 
         [Then(@"на веб-странице текст элемента \""(.+)\"" заполнен")]
         [Then(@"на веб-странице текст элемента \""(.+)\"" не равно null")]
         [Then(@"на веб-странице текст элемента \""(.+)\"" содержит символы, отличные от пробелов")]
-        public void WebElementTextIsNotEmpty(string name)
+        public async Task WebElementTextIsNotEmptyAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Text.Should().NotBeNullOrWhiteSpace($"текст элемента \"{name}\" пустой или не существует");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var elementValue = await element.Text;
+            elementValue.Should().NotBeNullOrWhiteSpace($"текст элемента \"{name}\" пустой или не существует");
         }
 
         #endregion
         
         #region Проверка на Contains и Equal со значением и переменной для текста и значения элемента
         [Then(@"на веб-странице значение элемента \""(.+)\"" содержит значение \""(.+)\""")]
-        public void WebElementValueContainsValue(string name, string expected)
+        public async Task WebElementValueContainsValueAsync(string name, string expected)
         {
             expected.Should().NotBeNull($"значение \"expected\" не задано");
             expected = this.variableController.ReplaceVariables(expected) ?? expected;
             
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Value.ToString().Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
-        
-            element.Value.ToString().Should().Contain(expected, $"значение элемента \"{name}\":\"{element.Value}\" не содержит \"{expected}\"");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var elementValue = await element.Value;
+            elementValue.ToString().Should().NotBeNullOrWhiteSpace($"значение элемента \"{name}\" пусто или не существует");
+            elementValue.ToString().Should().Contain(expected, $"значение элемента \"{name}\":\"{element.Value}\" не содержит \"{expected}\"");
         }
 
         [Then(@"на веб-странице текст элемента \""(.+)\"" содержит значение \""(.+)\""")]
-        public void WebElementTextContainsValue(string name, string expected)
+        public async Task WebElementTextContainsValueAsync(string name, string expected)
         {
             expected.Should().NotBeNull($"значение \"expected\" не задано");
             expected = this.variableController.ReplaceVariables(expected) ?? expected;
             
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Text.Should().NotBeNullOrWhiteSpace($"текст у элемента \"{name}\" пустой или не существует");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var elementText = await element.Text;
+            elementText.Should().NotBeNullOrWhiteSpace($"текст у элемента \"{name}\" пустой или не существует");
         
-            element.Text.Should().Contain(expected, $"текст элемента \"{name}\":\"{element.Text}\" не содержит \"{expected}\"");
+            elementText.Should().Contain(expected, $"текст элемента \"{name}\":\"{element.Text}\" не содержит \"{expected}\"");
         }
 
         [Then(@"на веб-странице значение элемента \""(.+)\"" не содержит значение \""(.+)\""")]
-        public void WebElementValueNotContainsValue(string name, string expected)
+        public async Task WebElementValueNotContainsValueAsync(string name, string expected)
         {
             expected.Should().NotBeNull($"значение \"expected\" не задано");
             expected = this.variableController.ReplaceVariables(expected) ?? expected;
             
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Value.ToString().Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var elementValue = await element.Value;
+            elementValue.ToString().Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
         
-            element.Value.ToString().Should().NotContain(expected, $"значение элемента \"{name}\":\"{element.Value}\" содержит \"{expected}\"");
+            elementValue.ToString().Should().NotContain(expected, $"значение элемента \"{name}\":\"{element.Value}\" содержит \"{expected}\"");
         }
 
         [Then(@"на веб-странице текст элемента \""(.+)\"" не содержит значение \""(.+)\""")]
-        public void WebElementTextNotContainsValue(string name, string expected)
+        public async Task WebElementTextNotContainsValueAsync(string name, string expected)
         {
             expected.Should().NotBeNull($"значение \"expected\" не задано");
             expected = this.variableController.ReplaceVariables(expected) ?? expected;
             
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Text.Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var elementText = await element.Text;
+            elementText.Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
         
-            element.Text.Should().NotContain(expected, $"текст у элемента \"{name}\":\"{element.Text}\" содержит \"{expected}\"");
+            elementText.Should().NotContain(expected, $"текст у элемента \"{name}\":\"{element.Text}\" содержит \"{expected}\"");
         }
 
         [Then(@"на веб-странице значение элемента \""(.+)\"" равно значению \""(.+)\""")]
-        public void WebElementValueEqualValue(string name, string expected)
+        public async Task WebElementValueEqualValueAsync(string name, string expected)
         {
             expected.Should().NotBeNull($"значение \"expected\" не задано");
             expected = this.variableController.ReplaceVariables(expected) ?? expected;
             
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Value.ToString().Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var elementValue = await element.Value;
+            elementValue.ToString().Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
         
-            element.Value.ToString().Should().Be(expected, $"значение элемента \"{name}\":\"{element.Value}\" не равно \"{expected}\"");
+            elementValue.ToString().Should().Be(expected, $"значение элемента \"{name}\":\"{element.Value}\" не равно \"{expected}\"");
         }
 
         [Then(@"на веб-странице текст элемента \""(.+)\"" равен значению \""(.+)\""")]
-        public void WebElementTextEqualValue(string name, string expected)
+        public async Task WebElementTextEqualValueAsync(string name, string expected)
         {
             expected.Should().NotBeNull($"значение \"expected\" не задано");
             expected = this.variableController.ReplaceVariables(expected) ?? expected;
             
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Text.Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var elementText = await element.Text;
+            elementText.Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
         
-            element.Text.Should()
+            elementText.Should()
                 .Be(expected, $"текст у элемента \"{name}\":\"{element.Text}\" не равен \"{expected}\"");
         }
 
         [Then(@"на веб-странице значение элемента \""(.+)\"" не равно значению \""(.+)\""")]
-        public void WebElementValueNotEqualValue(string name, string expected)
+        public async Task WebElementValueNotEqualValueAsync(string name, string expected)
         {
             expected.Should().NotBeNull($"значение \"expected\" не задано");
             expected = this.variableController.ReplaceVariables(expected) ?? expected;
             
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Value.ToString().Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var elementValue = await element.Value;
+            elementValue.ToString().Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
         
-            element.Value.ToString().Should()
+            elementValue.ToString().Should()
                 .NotBe(expected, $"значение элемента \"{name}\":\"{element.Value}\" равно \"{expected}\"");
         }
 
         [Then(@"на веб-странице текст элемента \""(.+)\"" не равен значению \""(.+)\""")]
-        public void WebElementTextNotEqualValue(string name, string expected)
+        public async Task WebElementTextNotEqualValueAsync(string name, string expected)
         {
             expected.Should().NotBeNull($"значение \"expected\" не задано");
             expected = this.variableController.ReplaceVariables(expected) ?? expected;
             
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Text.Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var elementText = await element.Text;
+            elementText.Should().NotBeNullOrWhiteSpace($"эначение элемента \"{name}\" пусто или не существует");
         
-            element.Text.Should()
+            elementText.Should()
                 .NotBe(expected, $"текст у элемента \"{name}\":\"{element.Text}\" равен \"{expected}\"");
         }
 
@@ -489,61 +532,67 @@ namespace Molder.Web.Steps
         
         #region Проверка свойств элемента на отображение, активность и редактируемость
         [Then(@"элемент \""(.+)\"" отображается на веб-странице")]
-        public void WebElementIsDisplayed(string name)
+        public async Task WebElementIsDisplayedAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Displayed.Should().BeTrue($"элемент \"{name}\" не отображается");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var isDispalyed = await element.Displayed;
+            isDispalyed.Should().BeTrue($"элемент \"{name}\" не отображается");
         }
         
         [Then(@"элемент \""(.+)\"" не отображается на веб-странице")]
-        public void WebElementIsNotDisplayed(string name)
+        public async Task WebElementIsNotDisplayedAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-        
-            element.NotDisplayed.Should().BeTrue($"элемент \"{name}\" отображается");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var isDispalyed = await element.NotDisplayed;
+            isDispalyed.Should().BeTrue($"элемент \"{name}\" отображается");
         }
         
         [Then(@"на веб-странице элемент \""(.+)\"" активен")]
-        public void WebElementIsEnabled(string name)
+        public async Task WebElementIsEnabledAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Enabled.Should().BeTrue($"элемент \"{name}\" не активен");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var isEnabled = await element.Enabled;
+            isEnabled.Should().BeTrue($"элемент \"{name}\" не активен");
         }
         
         [Then(@"на веб-странице элемент \""(.+)\"" неактивен")]
-        public void WebElementIsDisabled(string name)
+        public async Task WebElementIsDisabledAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-        
-            element.Disabled.Should().BeTrue($"элемент \"{name}\" активен");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var isDisabled = await element.Disabled;
+            isDisabled.Should().BeTrue($"элемент \"{name}\" активен");
         }
         
         [Then(@"на веб-странице элемент \""(.+)\"" выбран")]
-        public void WebElementIsSelected(string name)
+        public async Task WebElementIsSelectedAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Selected.Should().BeTrue($"элемент \"{name}\" не выбран");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var isSelected = await element.Selected;
+            isSelected.Should().BeTrue($"элемент \"{name}\" не выбран");
         }
         
         [Then(@"на веб-странице элемент \""(.+)\"" не выбран")]
-        public void WebElementIsNotSelected(string name)
+        public async Task WebElementIsNotSelectedAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.NotSelected.Should().BeTrue($"элемент \"{name}\" выбран");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var isNotSelected = await element.NotSelected;
+            isNotSelected.Should().BeTrue($"элемент \"{name}\" выбран");
         }
         
         [Then(@"на веб-странице элемент \""(.+)\"" нельзя редактировать")]
-        public void WebElementIsNotEditable(string name)
+        public async Task WebElementIsNotEditableAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.NotEditable.Should().BeTrue($"элемент \"{name}\" доступен для редактирования");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var isNotEditable = await element.NotEditable;
+            isNotEditable.Should().BeTrue($"элемент \"{name}\" доступен для редактирования");
         }
         
         [Then(@"на веб-странице элемент \""(.+)\"" можно редактировать")]
-        public void WebElementIsEditable(string name)
+        public async Task WebElementIsEditableAsync(string name)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
-            element.Editabled.Should().BeTrue($"элемент \"{name}\" не доступен для редактирования");
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
+            var isEditable = await element.Editabled;
+            isEditable.Should().BeTrue($"элемент \"{name}\" не доступен для редактирования");
         }
         
         #endregion
@@ -551,31 +600,31 @@ namespace Molder.Web.Steps
         #region Работа с Dropdown 
         
         [StepDefinition(@"я выбираю в поле \""(.+)\"" веб-страницы значение \""(.+)\""")]
-        public void DropdownIntoValue(string name, string value)
+        public async Task DropdownIntoValueAsync(string name, string value)
         {
             value.Should().NotBeNull($"значение \"expected\" не задано");
             value = this.variableController.ReplaceVariables(value) ?? value;
             
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
             (element is Dropdown).Should().BeTrue($"элемент \"{name}\" имеет отличный от Dropdown профиль");
             (element as Dropdown)?.SelectByValue(value);
         }
 
         [StepDefinition(@"я выбираю в поле \""(.+)\"" веб-страницы текст \""(.+)\""")]
-        public void DropdownIntoText(string name, string text)
+        public async Task DropdownIntoTextAsync(string name, string text)
         {
             text.Should().NotBeNull($"значение \"expected\" не задано");
             text = this.variableController.ReplaceVariables(text) ?? text;
             
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
             (element is Dropdown).Should().BeTrue($"элемент \"{name}\" имеет отличный от Dropdown профиль");
             (element as Dropdown)?.SelectByText(text);
         }
 
         [StepDefinition(@"я выбираю в поле \""(.+)\"" веб-страницы номер значения \""(.+)\""")]
-        public void DropdownIntoIndex(string name, int index)
+        public async Task DropdownIntoIndexAsync(string name, int index)
         {
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
             (element is Dropdown).Should().BeTrue($"элемент \"{name}\" имеет отличный от Dropdown профиль");
             (element as Dropdown)?.SelectByIndex(index);
         }
@@ -584,9 +633,9 @@ namespace Molder.Web.Steps
         
         #region Blocks
         [StepDefinition(@"я перехожу на блок \""(.+)\"" на веб-странице")]
-        public void GoToBlock(string block)
+        public async Task GoToBlockAsync(string block)
         {
-            BrowserController.GetBrowser().GetCurrentPage().GetBlock(block);
+            await BrowserController.GetBrowser().GetCurrentPage().GetBlockAsync(block);
         }
         
         [StepDefinition(@"я возвращаюсь к основной веб-странице")]
@@ -604,23 +653,23 @@ namespace Molder.Web.Steps
         }
         
         [StepDefinition(@"я перехожу на стандартный фрейм на веб-странице")]
-        public void GetDefaultFrame()
+        public async Task GetDefaultFrameAsync()
         {
-            BrowserController.GetBrowser().GetCurrentPage().GetDefaultFrame();
+            await BrowserController.GetBrowser().GetCurrentPage().GetDefaultFrameAsync();
         }
         #endregion
 
         #region File
         
         [StepDefinition(@"я загружаю в элемент \""(.+)\"" веб-страницы файл \""(.+)\""")]
-        public void UploadFileIntoField(string name, string fullpath)
+        public async Task UploadFileIntoFieldAsync(string name, string fullpath)
         {
             fullpath = variableController.ReplaceVariables(fullpath) ?? fullpath;
             
-            var element = BrowserController.GetBrowser().GetCurrentPage().GetElement(name);
+            var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
             (element is File).Should().BeTrue($"элемент \"{name}\" имеет отличный от File профиль");
             
-            (element as File)?.SetText(fullpath);
+            (element as File)?.SetTextAsync(fullpath);
         }
         
         #endregion

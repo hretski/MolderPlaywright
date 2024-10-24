@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Molder.Controllers;
 using Molder.Extensions;
 using Molder.Web.Extensions;
@@ -29,32 +30,32 @@ namespace Molder.Web.Models.PageObjects.Pages
 
         public void SetVariables(VariableController variableController) => _variableController = variableController;
 
-        public override Block GetBlock(string name)
+        public override async Task<Block> GetBlockAsync(string name)
         {
             var root = Local ?? Root;
             var block = root.SearchElementBy(name, ObjectType.Block);
             (block.Object as Block)?.SetProvider(DriverProvider);
-            (block.Object as Block)?.Get();
+            await (block.Object as Block)?.GetAsync();
             ((Block) block.Object).Root = block;
             Local = block;
             return (Block) block.Object;
         }
 
-        public override IElement GetElement(string name)
+        public override async Task<IElement> GetElementAsync(string name)
         {
             var root = Local ?? Root;
             var element = root.SearchElementBy(name);
             ((IElement) element.Object).Root = element;
             ((IElement) element.Object).SetProvider(DriverProvider);
-            ((IElement) element.Object).Get();
+            await ((IElement) element.Object).GetAsync();
             return (IElement) element.Object;
         }
 
-        public override IEnumerable<IElement> GetCollection(string name)
+        public override async Task<IEnumerable<IElement>> GetCollectionAsync(string name)
         {
             var root = Local ?? Root;
             var collection = root.SearchCollectionBy(name);
-            var elements = DriverProvider.GetElements(((IElement) collection.Object).Locator,
+            var elements = await DriverProvider.GetElementsAsync(((IElement) collection.Object).Locator,
                 ((IElement) collection.Object).How);
             var lst = new List<IElement>();
 
@@ -77,11 +78,11 @@ namespace Molder.Web.Models.PageObjects.Pages
 
         #region Работа с фреймами
 
-        public override IPage GetDefaultFrame()
+        public override async Task<IPage> GetDefaultFrameAsync()
         {
             if (Local is not {Type: ObjectType.Frame}) return this;
             
-            DriverProvider = (Local.Object as Frame)?.Default();
+            DriverProvider = await (Local.Object as Frame)?.DefaultAsync();
             Local = null;
             return this;
         }
@@ -95,7 +96,7 @@ namespace Molder.Web.Models.PageObjects.Pages
         {
             var root = Local ?? Root;
             var frame = root.SearchElementBy(name, ObjectType.Frame);
-            (frame.Object as Frame)?.SetProvider(DriverProvider);
+            (frame.Object as Frame)?.SetProviderAsync(DriverProvider);
             ((Frame) frame.Object).Root = frame;
             Local = frame;
             return frame.Object as Frame;
@@ -103,21 +104,23 @@ namespace Molder.Web.Models.PageObjects.Pages
 
         #endregion
 
-        public override void GoToPage()
+        public override async Task GoToPageAsync()
         {
-            _driverProvider.GoToUrl(Url);
+            await DriverProvider.GoToUrlAsync(Url);
         }
 
-        public override void PageTop()
+        public override async Task PageTopAsync()
         {
-            var action = new Actions(DriverProvider.GetDriver());
+            var driver = await DriverProvider.GetDriverAsync();
+            var action = new Actions((IWebDriver)driver);
             action.SendKeys(Keys.Control).SendKeys(Keys.Home).Build().Perform();
             action.KeyUp(Keys.Control).Perform();
         }
 
-        public override void PageDown()
+        public override async Task PageDownAsync()
         {
-            var action = new Actions(DriverProvider.GetDriver());
+            var driver = await DriverProvider.GetDriverAsync();
+            var action = new Actions((IWebDriver)driver);
             action.SendKeys(Keys.Control).SendKeys(Keys.End).Build().Perform();
             action.KeyUp(Keys.Control).Perform();
         }

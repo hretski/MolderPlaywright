@@ -7,6 +7,7 @@ using Molder.Web.Models.PageObjects.Blocks;
 using Molder.Web.Models.PageObjects.Frames;
 using Molder.Controllers;
 using Molder.Web.Models.Providers;
+using System.Threading.Tasks;
 
 namespace Molder.Web.Models.PageObjects.Pages
 {
@@ -26,26 +27,26 @@ namespace Molder.Web.Models.PageObjects.Pages
         public abstract Node Root { get; set; }
         public virtual Node Local { get; set; } = null; 
 
-        public abstract Block GetBlock(string name);
+        public abstract Task<Block> GetBlockAsync(string name);
         public void BackToPage() => Local = null;
 
-        public abstract IElement GetElement(string name);
+        public abstract Task<IElement> GetElementAsync(string name);
 
-        public abstract IEnumerable<IElement> GetCollection(string name);
+        public abstract Task<IEnumerable<IElement>> GetCollectionAsync(string name);
         
         public abstract IEnumerable<string> GetPrimaryElements();
-        public abstract void GoToPage();
-        public abstract void PageTop();
-        public abstract void PageDown();
+        public abstract Task GoToPageAsync();
+        public abstract Task PageTopAsync();
+        public abstract Task PageDownAsync();
         public bool IsLoadElements()
         {
             var errors = new List<string>();
             var elementsNames = GetPrimaryElements();
 
-            (elementsNames as List<string>)?.ForEach(name =>
+            (elementsNames as List<string>)?.ForEach(async name =>
             {
-                var element = GetElement(name);
-                if (!element.Loaded)
+                var element = await GetElementAsync(name);
+                if (!(await element.Loaded))
                 {
                     errors.Add(name);
                 }
@@ -57,7 +58,7 @@ namespace Molder.Web.Models.PageObjects.Pages
             return false;
         }
 
-        public abstract IPage GetDefaultFrame();
+        public abstract Task<IPage> GetDefaultFrameAsync();
         public abstract Frame GetParentFrame();
         public abstract Frame GetFrame(string name);
     }
