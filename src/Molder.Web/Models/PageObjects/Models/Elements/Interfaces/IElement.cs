@@ -28,7 +28,7 @@ namespace Molder.Web.Models.PageObjects.Elements
         Task<bool> NotEditable { get; }
         #endregion
         
-        void SetProvider(IDriverProvider provider);
+        Task SetProviderAsync(IDriverProvider provider);
         Task GetAsync();
         Task<IElement> FindAsync(Node element, How how = How.XPath);
         Task<IEnumerable<IElement>> FindAllAsync(Node element, How how = How.XPath);

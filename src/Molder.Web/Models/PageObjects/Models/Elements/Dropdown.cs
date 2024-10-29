@@ -10,19 +10,19 @@ namespace Molder.Web.Models.PageObjects.Elements
 
         public void SelectByValue(string value)
         {
-            var select = new SelectElement((IWebElement)Mediator.ExecuteAsync(() => ((ElementProvider)ElementProvider).WebElement));
+            var select = new SelectElement((IWebElement)Mediator.ExecuteAsync(() => ((ElementProviderSelenium)ElementProvider).WebElement));
             select.SelectByValue(value);
         }
 
         public void SelectByText(string text)
         {
-            var select = new SelectElement((IWebElement)Mediator.ExecuteAsync(() => ((ElementProvider)ElementProvider).WebElement));
+            var select = new SelectElement((IWebElement)Mediator.ExecuteAsync(() => ((ElementProviderSelenium)ElementProvider).WebElement));
             select.SelectByText(text);
         }
 
         public void SelectByIndex(int index)
         {
-            var select = new SelectElement((IWebElement)Mediator.ExecuteAsync(() => ((ElementProvider)ElementProvider).WebElement));
+            var select = new SelectElement((IWebElement)Mediator.ExecuteAsync(() => ((ElementProviderSelenium)ElementProvider).WebElement));
             select.SelectByIndex(index);
         }
     }

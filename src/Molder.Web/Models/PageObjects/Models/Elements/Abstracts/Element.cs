@@ -12,6 +12,8 @@ using Molder.Web.Exceptions;
 using Molder.Web.Extensions;
 using Molder.Web.Infrastructures;
 using System.Threading.Tasks;
+using Molder.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace Molder.Web.Models.PageObjects.Elements
 {
@@ -89,92 +91,22 @@ namespace Molder.Web.Models.PageObjects.Elements
             }
             return tcs.Task;
         }).Unwrap();
-        public Task<bool> Loaded
-        {
-            get
-            {
-                object result = Mediator.WaitAsync(() => ElementProvider != null);
-                return Task.FromResult((bool)result);
-            }
-        }
-        public Task<bool> NotLoaded
-        { 
-            get
-            {
-                object result = Mediator.WaitAsync(() => ElementProvider == null);
-                return Task.FromResult((bool)result);
-            }
-        }
-        public Task<bool> Enabled
-        {
-            get
-            {
-                object result = Mediator.WaitAsync(async () => await ElementProvider.Enabled);
-                return Task.FromResult((bool)result);
-            }    
-    }
-        public Task<bool> Disabled
-        {
-            get
-            {
-                object result = Mediator.WaitAsync(async () => await ElementProvider.Disabled);
-                return Task.FromResult((bool)result);
-            }
-        }
-        public Task<bool> Displayed
-        {
-            get
-            {
-                object result = Mediator.WaitAsync(async () => await ElementProvider.Displayed);
-                return Task.FromResult((bool)result);
-            }
-        }
-        public Task<bool> NotDisplayed
-        {
-            get
-            {
-                object result = Mediator.WaitAsync(async () => await ElementProvider.NotDisplayed);
-                return Task.FromResult((bool)result);
-            }
-        }
-        public Task<bool> Selected
-        {
-            get
-            {
-                object result = Mediator.WaitAsync(async () => await ElementProvider.Selected);
-                return Task.FromResult((bool)result);
-            }
-        }
-        public Task<bool> NotSelected
-        {
-            get
-            {
-                object result = Mediator.WaitAsync(async () => await ElementProvider.NotSelected);
-                return Task.FromResult((bool)result);
-            }
-        }
-        public Task<bool> Editabled
-        {
-            get
-            {
-                object result = Mediator.WaitAsync(async () => await IsEditabledAsync());
-                return Task.FromResult((bool)result);
-            }
-        }
+        public Task<bool> Loaded => ElementProvider.Loaded;
+        public Task<bool> NotLoaded => ElementProvider.NotLoaded;
+        public Task<bool> Enabled => ElementProvider.Enabled;
+        public Task<bool> Disabled => ElementProvider.Disabled;
+        public Task<bool> Displayed => ElementProvider.Displayed;
+        public Task<bool> NotDisplayed => ElementProvider.NotDisplayed;
+        public Task<bool> Selected => ElementProvider.Selected;
+        public Task<bool> NotSelected => ElementProvider.NotSelected;
+        public Task<bool> Editabled => ElementProvider.Editabled;
+        public Task<bool> NotEditable => ElementProvider.NotEditabled;
 
-        public Task<bool> NotEditable
-        {
-            get
-            {
-                object result = Mediator.WaitAsync(async () => !await IsEditabledAsync());
-                return Task.FromResult((bool)result);
-            }
-        }
-
-        public void SetProvider(IDriverProvider provider)
+        public async Task SetProviderAsync(IDriverProvider provider)
         {
             Driver = provider;
             Mediator = new ElementMediator(BrowserSettings.Settings.Timeout);
+            ElementProvider = await Driver.GetElementAsync(Locator, How);
         }
 
         public async Task GetAsync()
@@ -224,9 +156,15 @@ namespace Molder.Web.Models.PageObjects.Elements
         }
         public async Task MoveAsync()
         {
-            var driver = await Driver.GetDriverAsync();
-            var action = new Actions((IWebDriver)driver);
-            await Task.Run(() => action.MoveToElement(((ElementProvider)ElementProvider).WebElement).Build().Perform());
+            try
+            {
+                await Mediator.ExecuteAsync(async () => await ElementProvider.MoveToElementAsync());
+            }
+            catch(Exception ex)
+            {
+                Log.Logger().LogError(ex, $"Move to element is return error with message {ex.Message}");
+            }
+             
         }
         public async Task PressKeysAsync(string keys)
         {

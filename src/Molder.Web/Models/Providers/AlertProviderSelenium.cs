@@ -7,7 +7,7 @@ using Molder.Web.Exceptions;
 namespace Molder.Web.Models.Providers
 {
     [ExcludeFromCodeCoverage]
-    public class AlertProvider : IAlertProvider
+    public class AlertProviderSelenium : IAlertProvider
     {
         #region Alert
 

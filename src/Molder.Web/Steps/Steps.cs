@@ -15,6 +15,8 @@ using Molder.Web.Models.Settings;
 using System.Collections.Generic;
 using Molder.Web.Models;
 using FluentAssertions;
+using Molder.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace Molder.Web.Steps
 {
@@ -268,10 +270,17 @@ namespace Molder.Web.Steps
         public async Task ScrollToElementAsync(string name)
         {
             var element = await BrowserController.GetBrowser().GetCurrentPage().GetElementAsync(name);
-            await element.MoveAsync();
-        }
+            await element.MoveAsync().ContinueWith(task =>
+            {
+                if(task.Exception != null)
+                {
+                    Log.Logger().LogError(task.Exception, "Error in MoveAsync");
+                }
+            });
 
-        [StepDefinition(@"выполнено нажатие на элемент \""(.+)\"" на веб-странице")]
+            }
+
+            [StepDefinition(@"выполнено нажатие на элемент \""(.+)\"" на веб-странице")]
         public async Task ClickToWebElementAsync(string name)
         {
             var stopwatch = new Stopwatch();
@@ -279,7 +288,7 @@ namespace Molder.Web.Steps
             stopwatch.Start();
             try
             {
-                var isDisplayed = await element.Displayed;
+                bool isDisplayed = await element.Displayed;
                 while (!isDisplayed && stopwatch.Elapsed.Ticks < (TimeSpan.TicksPerSecond * Constants.TIC_IN_SEC))
                 {
                     isDisplayed = await element.Displayed;

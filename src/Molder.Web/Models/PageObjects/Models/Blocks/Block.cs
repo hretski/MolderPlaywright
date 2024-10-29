@@ -14,7 +14,7 @@ namespace Molder.Web.Models.PageObjects.Blocks
         {
             var block = Root.SearchElementBy(name, ObjectType.Block);
 
-            (block.Object as Block)?.SetProvider(Driver);
+            await (block.Object as Block)?.SetProviderAsync(Driver);
             await (block.Object as Block)?.GetAsync();
             ((Block)block.Object).Root = block;
             return (Block)block.Object;
@@ -23,7 +23,7 @@ namespace Molder.Web.Models.PageObjects.Blocks
         public async Task<IElement> GetElementAsync(string name)
         {
             var element = Root.SearchElementBy(name);
-            (element.Object as Element)?.SetProvider(Driver);
+            await (element.Object as Element)?.SetProviderAsync(Driver);
             ((Element)element.Object).Root = element;
             if (Root.Type == ObjectType.Collection)
             {

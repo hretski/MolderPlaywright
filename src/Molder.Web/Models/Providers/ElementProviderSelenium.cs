@@ -13,11 +13,12 @@ using Molder.Web.Extensions;
 using Molder.Web.Models.Settings;
 using OpenQA.Selenium.Support.UI;
 using System.Threading.Tasks;
+using OpenQA.Selenium.Interactions;
 
 namespace Molder.Web.Models.Providers
 {
     [ExcludeFromCodeCoverage]
-    public class ElementProvider : IElementProvider
+    public class ElementProviderSelenium : IElementProvider
     {
         private long? _timeout;
         private By _locator;
@@ -58,7 +59,7 @@ namespace Molder.Web.Models.Providers
         }
 
 
-        public ElementProvider(long? timeout, By locator)
+        public ElementProviderSelenium(long? timeout, By locator)
         {
             _timeout = timeout;
             _locator = locator;
@@ -165,7 +166,7 @@ namespace Molder.Web.Models.Providers
         public async Task<IElementProvider> FindElementAsync(By by)
         {
             var element = WebElement.FindBy(by, WebDriver, (int) BrowserSettings.Settings.Timeout);
-            return await Task.FromResult((IElementProvider)new ElementProvider(_timeout, by)
+            return await Task.FromResult((IElementProvider)new ElementProviderSelenium(_timeout, by)
             {
                 WebElement = element
             });
@@ -174,7 +175,7 @@ namespace Molder.Web.Models.Providers
         public async Task<ReadOnlyCollection<IElementProvider>> FindElementsAsync(By by)
         {
             var elements = WebElement.FindAllBy(by, WebDriver, (int) BrowserSettings.Settings.Timeout);
-            var listElement = elements.Select(element => new ElementProvider(_timeout, by) {WebElement = element}).Cast<IElementProvider>().ToList();
+            var listElement = elements.Select(element => new ElementProviderSelenium(_timeout, by) {WebElement = element}).Cast<IElementProvider>().ToList();
             return await Task.FromResult(listElement.AsReadOnly());
         }
 
@@ -225,6 +226,21 @@ namespace Molder.Web.Models.Providers
             var wait = new WebDriverWait(WebDriver, TimeSpan.FromSeconds((long)BrowserSettings.Settings.Timeout));
             WebElement = wait.Until(_ => WebElement.GetAttribute(attributeName) == attributeValue ? WebElement : throw new ElementException($"Waiting until attribute \"{attributeName}\" becomes value \"{attributeValue ?? "null"}\" is failed"));
             await Task.CompletedTask;
+        }
+
+        public async Task MoveToElementAsync()
+        {
+            try
+            {
+                var action = new Actions(WebDriver);
+                await Task.Run(() => action.MoveToElement(WebElement).Build().Perform());
+            }
+            catch (Exception ex)
+            {
+                Log.Logger().LogError($"Move to element is return error with message {ex.Message}");
+                await Task.FromException(ex);
+            }
+           
         }
     }
 }

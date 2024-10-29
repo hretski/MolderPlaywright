@@ -27,7 +27,7 @@ namespace Molder.Web.Models.PageObjects.Elements
             {
                 var driver = await Driver.GetDriverAsync();
                 var action = new Actions((OpenQA.Selenium.IWebDriver)driver);
-                await Mediator.ExecuteAsync(() => action.DoubleClick(((ElementProvider)ElementProvider).WebElement).Build().Perform());
+                await Mediator.ExecuteAsync(() => action.DoubleClick(((ElementProviderSelenium)ElementProvider).WebElement).Build().Perform());
             }
             else
             {
@@ -41,7 +41,7 @@ namespace Molder.Web.Models.PageObjects.Elements
             {
                 var driver = await Driver.GetDriverAsync();
                 var action = new Actions((OpenQA.Selenium.IWebDriver)driver);
-                await Mediator.ExecuteAsync(() => action.ClickAndHold(((ElementProvider)ElementProvider).WebElement).Build().Perform());
+                await Mediator.ExecuteAsync(() => action.ClickAndHold(((ElementProviderSelenium)ElementProvider).WebElement).Build().Perform());
             }
             else
             {

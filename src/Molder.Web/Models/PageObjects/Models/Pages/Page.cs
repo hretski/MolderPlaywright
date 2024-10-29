@@ -34,7 +34,7 @@ namespace Molder.Web.Models.PageObjects.Pages
         {
             var root = Local ?? Root;
             var block = root.SearchElementBy(name, ObjectType.Block);
-            (block.Object as Block)?.SetProvider(DriverProvider);
+            await (block.Object as Block)?.SetProviderAsync(DriverProvider);
             await (block.Object as Block)?.GetAsync();
             ((Block) block.Object).Root = block;
             Local = block;
@@ -46,8 +46,8 @@ namespace Molder.Web.Models.PageObjects.Pages
             var root = Local ?? Root;
             var element = root.SearchElementBy(name);
             ((IElement) element.Object).Root = element;
-            ((IElement) element.Object).SetProvider(DriverProvider);
-            await ((IElement) element.Object).GetAsync();
+            await ((IElement) element.Object).SetProviderAsync(DriverProvider);
+            //await ((IElement) element.Object).GetAsync();
             return (IElement) element.Object;
         }
 
@@ -63,7 +63,7 @@ namespace Molder.Web.Models.PageObjects.Pages
             {
                 IElement obj = (IElement)((IElement) collection.Object).Clone();
                 obj.Root = collection;
-                obj.SetProvider(DriverProvider);
+                await obj.SetProviderAsync(DriverProvider);
                 obj.ElementProvider = element;
                 lst.Add(obj);
             }

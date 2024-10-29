@@ -25,7 +25,7 @@ namespace Molder.Web.Models.Browser
 
         #endregion
 
-        public IDriverProvider DriverProvider { get; set; } = new DriverProvider();
+        public IDriverProvider DriverProvider { get; set; } = new DriverProviderSelenium();
 
         public Task<string> Url => DriverProvider.UrlAsync;
         public Task<string> Title => DriverProvider.TitleAsync;

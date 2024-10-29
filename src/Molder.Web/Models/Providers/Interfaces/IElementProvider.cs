@@ -24,6 +24,7 @@ namespace Molder.Web.Models.Providers
 
         Task ClearAsync();
         Task ClickAsync();
+        Task MoveToElementAsync();
         Task<string> GetAttributeAsync(string name);
         Task<string> GetCssAsync(string name);
         Task SendKeysAsync(string keys);
